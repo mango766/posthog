@@ -14381,6 +14381,9 @@
                 },
                 {
                     "$ref": "#/definitions/ActionsNode"
+                },
+                {
+                    "$ref": "#/definitions/ExperimentDataWarehouseNode"
                 }
             ]
         },
