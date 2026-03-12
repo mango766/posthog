@@ -233,6 +233,14 @@
             ],
             "label": "AI Evaluation Result (LLM)"
         },
+        "$ai_evaluation_runtime": {
+            "description": "The runtime used to execute the evaluation (e.g., llm_judge for LLM-based, hog for code-based).",
+            "examples": [
+                "llm_judge",
+                "hog"
+            ],
+            "label": "AI Evaluation Runtime (LLM)"
+        },
         "$ai_evaluation_start_time": {
             "description": "The timestamp when the evaluation started executing.",
             "examples": [
@@ -2898,6 +2906,14 @@
                 false
             ],
             "label": "AI Evaluation Result (LLM)"
+        },
+        "$ai_evaluation_runtime": {
+            "description": "The runtime used to execute the evaluation (e.g., llm_judge for LLM-based, hog for code-based).",
+            "examples": [
+                "llm_judge",
+                "hog"
+            ],
+            "label": "AI Evaluation Runtime (LLM)"
         },
         "$ai_evaluation_start_time": {
             "description": "The timestamp when the evaluation started executing.",

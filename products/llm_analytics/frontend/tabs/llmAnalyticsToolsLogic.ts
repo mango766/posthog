@@ -14,7 +14,7 @@ import {
 } from '~/queries/schema/schema-general'
 import { AnyPropertyFilter, ChartDisplayType, PathType, PropertyFilterType, PropertyOperator } from '~/types'
 
-import toolsQueryTemplate from '../../backend/queries/tools.sql?raw'
+import queryTemplate from '../../backend/queries/tools.sql?raw'
 import { SortDirection, SortState, llmAnalyticsSharedLogic } from '../llmAnalyticsSharedLogic'
 import type { llmAnalyticsToolsLogicType } from './llmAnalyticsToolsLogicType'
 
@@ -58,7 +58,7 @@ export const llmAnalyticsToolsLogic = kea<llmAnalyticsToolsLogicType>([
                 toolsSort: SortState,
                 groupsTaxonomicTypes: TaxonomicFilterGroupType[]
             ): DataTableNode => {
-                const query = toolsQueryTemplate
+                const query = queryTemplate
                     .replace('__ORDER_BY__', toolsSort.column)
                     .replace('__ORDER_DIRECTION__', toolsSort.direction)
 

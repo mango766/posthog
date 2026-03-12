@@ -6,7 +6,7 @@ import { groupsModel } from '~/models/groupsModel'
 import { DataTableNode, NodeKind } from '~/queries/schema/schema-general'
 import { AnyPropertyFilter } from '~/types'
 
-import errorsQueryTemplate from '../../backend/queries/errors.sql?raw'
+import queryTemplate from '../../backend/queries/errors.sql?raw'
 import { SortDirection, SortState, llmAnalyticsSharedLogic } from '../llmAnalyticsSharedLogic'
 import type { llmAnalyticsErrorsLogicType } from './llmAnalyticsErrorsLogicType'
 
@@ -50,9 +50,8 @@ export const llmAnalyticsErrorsLogic = kea<llmAnalyticsErrorsLogicType>([
                 errorsSort: SortState,
                 groupsTaxonomicTypes: TaxonomicFilterGroupType[]
             ): DataTableNode => {
-                // Use the shared query template
                 // Simple placeholder replacement - no escaping needed
-                const query = errorsQueryTemplate
+                const query = queryTemplate
                     .replace('__ORDER_BY__', errorsSort.column)
                     .replace('__ORDER_DIRECTION__', errorsSort.direction)
 
