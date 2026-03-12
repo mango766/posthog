@@ -1019,6 +1019,7 @@ export interface SharingConfigurationApi {
  * `google-cloud-storage` - Google Cloud Storage
  * `google-ads` - Google Ads
  * `google-sheets` - Google Sheets
+ * `google-cloud-service-account` - Google Cloud Service Account
  * `snapchat` - Snapchat
  * `linkedin-ads` - Linkedin Ads
  * `reddit-ads` - Reddit Ads
@@ -1050,6 +1051,7 @@ export const KindBfbEnumApi = {
     GoogleCloudStorage: 'google-cloud-storage',
     GoogleAds: 'google-ads',
     GoogleSheets: 'google-sheets',
+    GoogleCloudServiceAccount: 'google-cloud-service-account',
     Snapchat: 'snapchat',
     LinkedinAds: 'linkedin-ads',
     RedditAds: 'reddit-ads',
