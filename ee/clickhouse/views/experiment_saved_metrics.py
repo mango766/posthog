@@ -8,12 +8,10 @@ from rest_framework.exceptions import ValidationError
 
 from posthog.schema import (
     ExperimentFunnelMetric,
-    ExperimentFunnelsQuery,
     ExperimentMeanMetric,
     ExperimentMetricType,
     ExperimentRatioMetric,
     ExperimentRetentionMetric,
-    ExperimentTrendsQuery,
 )
 
 from posthog.api.routing import TeamAndOrgViewSetMixin
@@ -80,10 +78,14 @@ class ExperimentSavedMetricSerializer(
 
         metric_query = value
 
-        if metric_query.get("kind") not in ["ExperimentMetric", "ExperimentTrendsQuery", "ExperimentFunnelsQuery"]:
-            raise ValidationError(
-                "Metric query kind must be 'ExperimentMetric', 'ExperimentTrendsQuery' or 'ExperimentFunnelsQuery'"
-            )
+        if metric_query.get("kind") not in ["ExperimentMetric"]:
+            if metric_query.get("kind") in ["ExperimentTrendsQuery", "ExperimentFunnelsQuery"]:
+                raise ValidationError(
+                    "Legacy metric kinds (ExperimentTrendsQuery, ExperimentFunnelsQuery) are no longer supported "
+                    "for new saved metrics. Please use ExperimentMetric format. "
+                    "See: https://posthog.com/docs/experiments/new-experimentation-engine"
+                )
+            raise ValidationError("Metric query kind must be 'ExperimentMetric'")
 
         # pydantic models are used to validate the query
         try:
@@ -102,10 +104,6 @@ class ExperimentSavedMetricSerializer(
                     raise ValidationError(
                         "ExperimentMetric metric_type must be 'mean', 'funnel', 'ratio', or 'retention'"
                     )
-            elif metric_query["kind"] == "ExperimentTrendsQuery":
-                ExperimentTrendsQuery(**metric_query)
-            elif metric_query["kind"] == "ExperimentFunnelsQuery":
-                ExperimentFunnelsQuery(**metric_query)
         except pydantic.ValidationError as e:
             raise ValidationError(str(e.errors())) from e
 
