@@ -4829,6 +4829,7 @@ export const INTEGRATION_KINDS = [
     'salesforce',
     'hubspot',
     'google-pubsub',
+    'google-cloud-service-account',
     'google-cloud-storage',
     'google-ads',
     'google-sheets',
