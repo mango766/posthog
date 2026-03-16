@@ -271,8 +271,15 @@ class ProjectBackwardCompatSerializer(ProjectBackwardCompatBasicSerializer, User
 
     def get_live_events_token(self, project: Project) -> Optional[str]:
         team = project.teams.get(pk=project.pk)
+        request = self.context.get("request")
+        user_id = request.user.id if request and hasattr(request, "user") and request.user else None
         return encode_jwt(
-            {"team_id": team.id, "api_token": team.api_token},
+            {
+                "team_id": team.id,
+                "api_token": team.api_token,
+                "user_id": user_id,
+                "organization_id": str(team.organization_id),
+            },
             timedelta(days=7),
             PosthogJwtAudience.LIVESTREAM,
         )

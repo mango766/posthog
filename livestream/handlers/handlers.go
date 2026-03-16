@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/posthog/posthog/livestream/auth"
 	"github.com/posthog/posthog/livestream/events"
+	"github.com/redis/rueidis"
 )
 
 func Index(c echo.Context) error {
@@ -181,4 +183,95 @@ func StreamEventsHandler(log echo.Logger, subChan chan events.Subscription, unSu
 			}
 		}
 	}
+}
+
+func NotificationsHandler(redisClient rueidis.Client) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		_, userID, orgID, _, err := auth.GetAuthClaimsWithOrgID(c.Request().Header)
+		if err != nil || userID == 0 || orgID == "" {
+			return echo.NewHTTPError(http.StatusUnauthorized, "invalid token")
+		}
+
+		ctx := c.Request().Context()
+		channel := fmt.Sprintf("notifications:%s", orgID)
+
+		msgCh := make(chan string, 100)
+		errCh := make(chan error, 1)
+
+		go func() {
+			errCh <- redisClient.Receive(ctx, redisClient.B().Subscribe().Channel(channel).Build(), func(msg rueidis.PubSubMessage) {
+				select {
+				case msgCh <- msg.Message:
+				default:
+				}
+			})
+		}()
+
+		w := c.Response()
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+
+		heartbeat := time.NewTicker(15 * time.Second)
+		defer heartbeat.Stop()
+		timeout := time.After(30 * time.Minute)
+
+		for {
+			select {
+			case <-timeout:
+				return nil
+			case <-ctx.Done():
+				return nil
+			case err := <-errCh:
+				if err != nil {
+					log.Printf("Redis subscription error: %v", err)
+				}
+				return nil
+			case payload := <-msgCh:
+				if !isUserInResolvedIDs(payload, userID) {
+					continue
+				}
+				cleaned := stripResolvedUserIDs(payload)
+				event := Event{Data: []byte(cleaned)}
+				if err := event.WriteTo(w); err != nil {
+					return err
+				}
+				w.Flush()
+			case <-heartbeat.C:
+				event := Event{Comment: []byte("heartbeat")}
+				if err := event.WriteTo(w); err != nil {
+					return err
+				}
+				w.Flush()
+			}
+		}
+	}
+}
+
+func isUserInResolvedIDs(payload string, userID int) bool {
+	var data struct {
+		ResolvedUserIDs []int `json:"resolved_user_ids"`
+	}
+	if err := json.Unmarshal([]byte(payload), &data); err != nil {
+		return false
+	}
+	for _, id := range data.ResolvedUserIDs {
+		if id == userID {
+			return true
+		}
+	}
+	return false
+}
+
+func stripResolvedUserIDs(payload string) string {
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(payload), &data); err != nil {
+		return payload
+	}
+	delete(data, "resolved_user_ids")
+	cleaned, err := json.Marshal(data)
+	if err != nil {
+		return payload
+	}
+	return string(cleaned)
 }
