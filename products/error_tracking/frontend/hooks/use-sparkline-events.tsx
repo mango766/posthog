@@ -1,14 +1,26 @@
 import { useValues } from 'kea'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
-import { ErrorEventType } from 'lib/components/Errors/types'
+import api from 'lib/api'
+import { ErrorEventType, ErrorTrackingSpikeEvent } from 'lib/components/Errors/types'
 import { Dayjs } from 'lib/dayjs'
 
 import { SparklineEvent } from '../components/SparklineChart/SparklineChart'
 import { errorTrackingIssueSceneLogic } from '../scenes/ErrorTrackingIssueScene/errorTrackingIssueSceneLogic'
 
 export function useSparklineEvents(): SparklineEvent<string>[] {
-    const { firstSeen, lastSeen, selectedEvent } = useValues(errorTrackingIssueSceneLogic)
+    const { firstSeen, lastSeen, selectedEvent, issue } = useValues(errorTrackingIssueSceneLogic)
+    const [spikeEvents, setSpikeEvents] = useState<ErrorTrackingSpikeEvent[]>([])
+
+    useEffect(() => {
+        if (issue?.id) {
+            api.errorTracking
+                .getSpikeEvents(issue.id)
+                .then((response) => setSpikeEvents(response.results))
+                .catch(() => setSpikeEvents([]))
+        }
+    }, [issue?.id])
+
     return useMemo(() => {
         const events = []
         if (firstSeen) {
@@ -29,6 +41,15 @@ export function useSparklineEvents(): SparklineEvent<string>[] {
                 radius: 6,
             })
         }
+        for (const spike of spikeEvents) {
+            events.push({
+                id: `spike_${spike.id}`,
+                date: new Date(spike.detected_at),
+                color: 'var(--brand-red)',
+                payload: 'Spike',
+                radius: 5,
+            })
+        }
         if (lastSeen) {
             events.push({
                 id: 'last_seen',
@@ -39,7 +60,7 @@ export function useSparklineEvents(): SparklineEvent<string>[] {
             })
         }
         return events
-    }, [firstSeen, lastSeen, selectedEvent])
+    }, [firstSeen, lastSeen, selectedEvent, spikeEvents])
 }
 
 function isFirstOrLastEvent(

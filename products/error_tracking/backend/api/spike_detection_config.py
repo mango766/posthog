@@ -17,10 +17,11 @@ class ErrorTrackingSpikeDetectionConfigSerializer(serializers.ModelSerializer):
     snooze_duration_minutes = serializers.IntegerField(min_value=1)
     multiplier = serializers.IntegerField(min_value=1)
     threshold = serializers.IntegerField(min_value=1)
+    recently_spiking_hours = serializers.IntegerField(min_value=1)
 
     class Meta:
         model = ErrorTrackingSpikeDetectionConfig
-        fields = ["snooze_duration_minutes", "multiplier", "threshold"]
+        fields = ["snooze_duration_minutes", "multiplier", "threshold", "recently_spiking_hours"]
 
 
 @extend_schema(tags=[ProductKey.ERROR_TRACKING])

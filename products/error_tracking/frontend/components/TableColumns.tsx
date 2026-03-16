@@ -2,7 +2,7 @@ import { useActions, useValues } from 'kea'
 import { useMemo } from 'react'
 
 import { IconChevronDown, IconChevronRight, IconMinus } from '@posthog/icons'
-import { LemonCheckbox, LemonSkeleton, Link } from '@posthog/lemon-ui'
+import { LemonCheckbox, LemonSkeleton, LemonTag, Link } from '@posthog/lemon-ui'
 
 import { getRuntimeFromLib } from 'lib/components/Errors/utils'
 import { TZLabel } from 'lib/components/TZLabel'
@@ -12,6 +12,7 @@ import { urls } from 'scenes/urls'
 import { ErrorTrackingCorrelatedIssue, ErrorTrackingIssue } from '~/queries/schema/schema-general'
 
 import { bulkSelectLogic } from '../logics/bulkSelectLogic'
+import { recentlySpikingLogic } from '../logics/recentlySpikingLogic'
 import { errorTrackingIssueSceneLogic } from '../scenes/ErrorTrackingIssueScene/errorTrackingIssueSceneLogic'
 import { sourceDisplay } from '../utils'
 import { AssigneeIconDisplay, AssigneeLabelDisplay } from './Assignee/AssigneeDisplay'
@@ -51,10 +52,13 @@ export const IssueListTitleColumn = <T extends ErrorTrackingIssue | ErrorTrackin
     const { updateIssueAssignee, updateIssueStatus } = useActions(issueActionsLogic)
     const { dateRange, filterGroup, filterTestAccounts, searchQuery } = useValues(issueFiltersLogic)
 
+    const { recentlySpikingIssueIds } = useValues(recentlySpikingLogic)
+
     const record = props.record as ErrorTrackingIssue
     const checked = selectedIssueIds.includes(record.id)
     const runtime = getRuntimeFromLib(record.library)
     const recordIndex = props.recordIndex
+    const isSpiking = recentlySpikingIssueIds.has(record.id)
 
     const onChange = (newValue: boolean): void => {
         const includedIds: string[] = []
@@ -104,6 +108,11 @@ export const IssueListTitleColumn = <T extends ErrorTrackingIssue | ErrorTrackin
                         <span className="font-semibold text-[0.9rem] line-clamp-1">
                             {record.name || 'Unknown Type'}
                         </span>
+                        {isSpiking && (
+                            <LemonTag type="warning" size="small">
+                                Spiking
+                            </LemonTag>
+                        )}
                     </div>
                 </Link>
                 <div title={record.description || undefined} className="font-medium line-clamp-1 text-[var(--gray-8)]">

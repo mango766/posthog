@@ -13,12 +13,14 @@ export interface SpikeDetectionConfigForm {
     snooze_duration_minutes: number
     multiplier: number
     threshold: number
+    recently_spiking_hours: number
 }
 
 const DEFAULT_CONFIG: SpikeDetectionConfigForm = {
     snooze_duration_minutes: 10,
     multiplier: 10,
     threshold: 500,
+    recently_spiking_hours: 4,
 }
 
 export const spikeDetectionConfigLogic = kea<spikeDetectionConfigLogicType>([
@@ -59,6 +61,10 @@ export const spikeDetectionConfigLogic = kea<spikeDetectionConfigLogicType>([
                     formValues.snooze_duration_minutes < 1 ? 'Snooze duration must be at least 1 minute' : undefined,
                 multiplier: formValues.multiplier < 1 ? 'Multiplier must be at least 1' : undefined,
                 threshold: formValues.threshold < 1 ? 'Threshold must be at least 1' : undefined,
+                recently_spiking_hours:
+                    formValues.recently_spiking_hours < 1
+                        ? 'Recently spiking window must be at least 1 hour'
+                        : undefined,
             }),
             submit: async (formValues) => {
                 try {
@@ -66,12 +72,14 @@ export const spikeDetectionConfigLogic = kea<spikeDetectionConfigLogicType>([
                         snooze_duration_minutes: formValues.snooze_duration_minutes,
                         multiplier: formValues.multiplier,
                         threshold: formValues.threshold,
+                        recently_spiking_hours: formValues.recently_spiking_hours,
                     })
                     actions.loadConfigSuccess(updated)
                     posthog.capture('error_tracking_spike_detection_settings_updated', {
                         snooze_duration_minutes: formValues.snooze_duration_minutes,
                         multiplier: formValues.multiplier,
                         threshold: formValues.threshold,
+                        recently_spiking_hours: formValues.recently_spiking_hours,
                     })
                     lemonToast.success('Spike detection settings saved')
                 } catch (e) {
@@ -89,6 +97,7 @@ export const spikeDetectionConfigLogic = kea<spikeDetectionConfigLogicType>([
                     snooze_duration_minutes: config.snooze_duration_minutes,
                     multiplier: config.multiplier,
                     threshold: config.threshold,
+                    recently_spiking_hours: config.recently_spiking_hours,
                 })
             }
         },

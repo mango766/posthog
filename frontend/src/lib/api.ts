@@ -237,6 +237,7 @@ import {
     ErrorTrackingFingerprint,
     ErrorTrackingRelease,
     ErrorTrackingSpikeDetectionConfig,
+    ErrorTrackingSpikeEvent,
     ErrorTrackingStackFrame,
     ErrorTrackingStackFrameRecord,
     ErrorTrackingSymbolSet,
@@ -1297,6 +1298,10 @@ export class ApiRequest {
 
     public errorTrackingSpikeDetectionConfig(teamId?: TeamType['id']): ApiRequest {
         return this.errorTracking(teamId).addPathComponent('spike_detection_config')
+    }
+
+    public errorTrackingSpikeEvents(teamId?: TeamType['id']): ApiRequest {
+        return this.errorTracking(teamId).addPathComponent('spike_events')
     }
 
     public quickFilters(teamId?: TeamType['id']): ApiRequest {
@@ -3732,6 +3737,14 @@ const api = {
                 .errorTrackingSpikeDetectionConfig()
                 .withAction('update_config')
                 .update({ data })
+        },
+
+        async getSpikeEvents(issueId?: string): Promise<PaginatedResponse<ErrorTrackingSpikeEvent>> {
+            let request = new ApiRequest().errorTrackingSpikeEvents()
+            if (issueId) {
+                request = request.withQueryString({ issue_id: issueId })
+            }
+            return await request.get()
         },
     },
 

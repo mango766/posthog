@@ -298,6 +298,30 @@ async fn emit_spiking_events(
         return;
     }
 
+    // Persist spike events to Postgres
+    for spike in &acquired_locks {
+        let id = Uuid::new_v4();
+        let now = Utc::now();
+        if let Err(e) = sqlx::query(
+            r#"INSERT INTO posthog_errortrackingspikeevent
+               (id, team_id, issue_id, detected_at, computed_baseline, current_bucket_value, issue_name, issue_description)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"#,
+        )
+        .bind(id)
+        .bind(spike.issue.team_id)
+        .bind(spike.issue.id)
+        .bind(now)
+        .bind(spike.computed_baseline)
+        .bind(spike.current_bucket_value as i32)
+        .bind(&spike.issue.name)
+        .bind(&spike.issue.description)
+        .execute(&*context.posthog_pool)
+        .await
+        {
+            warn!("Failed to persist spike event: {e}");
+        }
+    }
+
     let emit_timer = common_metrics::timing_guard(SPIKE_EMIT_EVENTS_TIME, &[]);
     let events: Vec<(Uuid, InternalEvent)> = acquired_locks
         .iter()

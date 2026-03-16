@@ -153,6 +153,17 @@ export interface ErrorTrackingSpikeDetectionConfig {
     snooze_duration_minutes: number
     multiplier: number
     threshold: number
+    recently_spiking_hours: number
+}
+
+export interface ErrorTrackingSpikeEvent {
+    id: string
+    issue_id: string
+    detected_at: string
+    computed_baseline: number
+    current_bucket_value: number
+    issue_name: string | null
+    issue_description: string | null
 }
 
 export type SymbolSetStatus = 'valid' | 'invalid'
