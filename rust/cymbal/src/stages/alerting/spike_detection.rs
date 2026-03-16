@@ -315,7 +315,7 @@ async fn emit_spiking_events(
         .bind(spike.current_bucket_value as i32)
         .bind(&spike.issue.name)
         .bind(&spike.issue.description)
-        .execute(&*context.posthog_pool)
+        .execute(&context.posthog_pool)
         .await
         {
             warn!("Failed to persist spike event: {e}");
