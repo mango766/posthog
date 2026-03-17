@@ -162,6 +162,47 @@ class PersonsDeleteSustainedThrottle(PersonalApiKeyRateThrottle):
     rate = "4800/hour"
 
 
+class PersonUpdatePropertyRequestSerializer(serializers.Serializer):
+    key = serializers.CharField(help_text="The property key to set.")
+    value = serializers.JSONField(help_text="The property value. Can be a string, number, boolean, or object.")
+
+
+class PersonDeletePropertyRequestSerializer(serializers.Serializer):
+    def get_fields(self):
+        fields = super().get_fields()
+        # The endpoint reads request.data["$unset"], so the field name must include the $ prefix.
+        fields["$unset"] = serializers.CharField(help_text="The property key to remove from this person.")
+        return fields
+
+
+class PersonBulkDeleteRequestSerializer(serializers.Serializer):
+    ids = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="A list of PostHog person UUIDs to delete (max 1000).",
+    )
+    distinct_ids = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="A list of distinct IDs whose associated persons will be deleted (max 1000).",
+    )
+    delete_events = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="If true, queue deletion of all events associated with these persons.",
+    )
+    delete_recordings = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="If true, queue deletion of all recordings associated with these persons.",
+    )
+    keep_person = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="If true, keep the person records but delete their events and recordings.",
+    )
+
+
 class PersonSerializer(serializers.HyperlinkedModelSerializer):
     name = serializers.SerializerMethodField(
         help_text="Display name derived from person properties (email, name, or username)."
@@ -462,38 +503,7 @@ class PersonViewSet(TeamAndOrgViewSetMixin, viewsets.ModelViewSet):
         except Person.DoesNotExist:
             raise NotFound(detail="Person not found.")
 
-    @extend_schema(
-        parameters=[
-            OpenApiParameter(
-                "delete_events",
-                OpenApiTypes.BOOL,
-                description="If true, a task to delete all events associated with this person will be created and queued. The task does not run immediately and instead is batched together and at 5AM UTC every Sunday",
-                default=False,
-            ),
-            OpenApiParameter(
-                "delete_recordings",
-                OpenApiTypes.BOOL,
-                description="If true, a task to delete all recordings associated with this person will be created and queued. The task does not run immediately and instead is batched together and at 5AM UTC every Sunday",
-                default=False,
-            ),
-            OpenApiParameter(
-                "keep_person",
-                OpenApiTypes.BOOL,
-                description="If true, the person record itself will not be deleted. This is useful if you want to keep the person record for auditing purposes but remove events and recordings associated with them",
-                default=False,
-            ),
-            OpenApiParameter(
-                "distinct_ids",
-                OpenApiTypes.OBJECT,
-                description="A list of distinct IDs, up to 1000 of them. We'll delete all persons associated with those distinct IDs.",
-            ),
-            OpenApiParameter(
-                "ids",
-                OpenApiTypes.OBJECT,
-                description="A list of PostHog person IDs, up to 1000 of them. We'll delete all the persons listed.",
-            ),
-        ],
-    )
+    @extend_schema(request=PersonBulkDeleteRequestSerializer)
     @action(methods=["POST"], detail=False, required_scopes=["person:write"])
     def bulk_delete(self, request: request.Request, pk=None, **kwargs):
         """
@@ -568,6 +578,22 @@ class PersonViewSet(TeamAndOrgViewSetMixin, viewsets.ModelViewSet):
         if delete_recordings:
             self._queue_delete_recordings(persons)
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "key",
+                OpenApiTypes.STR,
+                description="The person property key to get values for (e.g., 'email', 'plan', 'role').",
+                required=True,
+            ),
+            OpenApiParameter(
+                "value",
+                OpenApiTypes.STR,
+                description="Optional search string to filter values (case-insensitive substring match).",
+                required=False,
+            ),
+        ]
+    )
     @action(methods=["GET"], detail=False, required_scopes=["person:read"])
     def values(self, request: request.Request, **kwargs) -> response.Response:
         from posthog.hogql_queries.property_values_query_runner import (
@@ -650,22 +676,7 @@ class PersonViewSet(TeamAndOrgViewSetMixin, viewsets.ModelViewSet):
 
         return response.Response({"success": True}, status=201)
 
-    @extend_schema(
-        parameters=[
-            OpenApiParameter(
-                "key",
-                OpenApiTypes.STR,
-                description="Specify the property key",
-                required=True,
-            ),
-            OpenApiParameter(
-                "value",
-                OpenApiTypes.ANY,
-                description="Specify the property value",
-                required=True,
-            ),
-        ]
-    )
+    @extend_schema(request=PersonUpdatePropertyRequestSerializer)
     @action(methods=["POST"], detail=True, required_scopes=["person:write"])
     def update_property(self, request: request.Request, pk=None, **kwargs) -> response.Response:
         if request.data.get("value") is None:
@@ -691,16 +702,7 @@ class PersonViewSet(TeamAndOrgViewSetMixin, viewsets.ModelViewSet):
         self._set_properties({request.data["key"]: request.data["value"]}, request.user)
         return Response(status=202)
 
-    @extend_schema(
-        parameters=[
-            OpenApiParameter(
-                "$unset",
-                OpenApiTypes.STR,
-                description="Specify the property key to delete",
-                required=True,
-            ),
-        ]
-    )
+    @extend_schema(request=PersonDeletePropertyRequestSerializer)
     @action(methods=["POST"], detail=True, required_scopes=["person:write"])
     def delete_property(self, request: request.Request, pk=None, **kwargs) -> response.Response:
         person: Person = get_pk_or_uuid(Person.objects.filter(team_id=self.team_id), pk).get()
@@ -770,6 +772,16 @@ class PersonViewSet(TeamAndOrgViewSetMixin, viewsets.ModelViewSet):
 
         return response.Response({"success": True}, status=201)
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "person_id",
+                OpenApiTypes.STR,
+                description="The person ID or UUID to get cohorts for.",
+                required=True,
+            ),
+        ]
+    )
     @action(methods=["GET"], detail=False, required_scopes=["person:read", "cohort:read"])
     def cohorts(self, request: request.Request) -> response.Response:
         from posthog.api.cohort import CohortMinimalSerializer

@@ -12577,13 +12577,21 @@ export namespace Schemas {
     export type EventTypeProperties = { [key: string]: unknown };
 
     export interface Person {
+      /** Numeric person ID. */
       readonly id: number;
+      /** Display name derived from person properties (email, name, or username). */
       readonly name: string;
       readonly distinct_ids: readonly string[];
+      /** Key-value map of person properties set via $set and $set_once operations. */
       properties?: unknown;
+      /** When this person was first seen (ISO 8601). */
       readonly created_at: string;
+      /** Unique identifier (UUID) for this person. */
       readonly uuid: string;
-      /** @nullable */
+      /**
+       * Timestamp of the last event from this person, or null.
+       * @nullable
+       */
       readonly last_seen_at: string | null;
     }
 
@@ -17142,13 +17150,21 @@ export namespace Schemas {
     } as const;
 
     export interface MinimalPerson {
+      /** Numeric person ID. */
       readonly id: number;
+      /** Display name derived from person properties (email, name, or username). */
       readonly name: string;
       readonly distinct_ids: string;
+      /** Key-value map of person properties set via $set and $set_once operations. */
       properties?: unknown;
+      /** When this person was first seen (ISO 8601). */
       readonly created_at: string;
+      /** Unique identifier (UUID) for this person. */
       readonly uuid: string;
-      /** @nullable */
+      /**
+       * Timestamp of the last event from this person, or null.
+       * @nullable
+       */
       readonly last_seen_at: string | null;
     }
 
@@ -21711,13 +21727,21 @@ export namespace Schemas {
     }
 
     export interface PatchedPerson {
+      /** Numeric person ID. */
       readonly id?: number;
+      /** Display name derived from person properties (email, name, or username). */
       readonly name?: string;
       readonly distinct_ids?: readonly string[];
+      /** Key-value map of person properties set via $set and $set_once operations. */
       properties?: unknown;
+      /** When this person was first seen (ISO 8601). */
       readonly created_at?: string;
+      /** Unique identifier (UUID) for this person. */
       readonly uuid?: string;
-      /** @nullable */
+      /**
+       * Timestamp of the last event from this person, or null.
+       * @nullable
+       */
       readonly last_seen_at?: string | null;
     }
 
@@ -22928,6 +22952,24 @@ export namespace Schemas {
       variants?: unknown;
     }
 
+    export interface PersonBulkDeleteRequest {
+      /** A list of PostHog person UUIDs to delete (max 1000). */
+      ids?: string[];
+      /** A list of distinct IDs whose associated persons will be deleted (max 1000). */
+      distinct_ids?: string[];
+      /** If true, queue deletion of all events associated with these persons. */
+      delete_events?: boolean;
+      /** If true, queue deletion of all recordings associated with these persons. */
+      delete_recordings?: boolean;
+      /** If true, keep the person records but delete their events and recordings. */
+      keep_person?: boolean;
+    }
+
+    export interface PersonDeletePropertyRequest {
+      /** The property key to remove from this person. */
+      $unset: string;
+    }
+
     /**
      * The parameters passed to the query
      */
@@ -23007,6 +23049,13 @@ export namespace Schemas {
       point_in_time_metadata: PersonPropertiesAtTimeMetadata;
       /** Debug information (only available when debug=true and DEBUG=True) */
       debug?: PersonPropertiesAtTimeDebug;
+    }
+
+    export interface PersonUpdatePropertyRequest {
+      /** The property key to set. */
+      key: string;
+      /** The property value. Can be a string, number, boolean, or object. */
+      value: unknown;
     }
 
     export interface PinnedSceneTabs {
@@ -28118,10 +28167,6 @@ export namespace Schemas {
     } as const;
 
     export type EnvironmentsPersonsDeletePropertyCreateParams = {
-    /**
-     * Specify the property key to delete
-     */
-    $unset: string;
     format?: EnvironmentsPersonsDeletePropertyCreateFormat;
     };
 
@@ -28159,14 +28204,6 @@ export namespace Schemas {
 
     export type EnvironmentsPersonsUpdatePropertyCreateParams = {
     format?: EnvironmentsPersonsUpdatePropertyCreateFormat;
-    /**
-     * Specify the property key
-     */
-    key: string;
-    /**
-     * Specify the property value
-     */
-    value: unknown;
     };
 
     export type EnvironmentsPersonsUpdatePropertyCreateFormat = typeof EnvironmentsPersonsUpdatePropertyCreateFormat[keyof typeof EnvironmentsPersonsUpdatePropertyCreateFormat];
@@ -28202,27 +28239,7 @@ export namespace Schemas {
     } as const;
 
     export type EnvironmentsPersonsBulkDeleteCreateParams = {
-    /**
-     * If true, a task to delete all events associated with this person will be created and queued. The task does not run immediately and instead is batched together and at 5AM UTC every Sunday
-     */
-    delete_events?: boolean;
-    /**
-     * If true, a task to delete all recordings associated with this person will be created and queued. The task does not run immediately and instead is batched together and at 5AM UTC every Sunday
-     */
-    delete_recordings?: boolean;
-    /**
-     * A list of distinct IDs, up to 1000 of them. We'll delete all persons associated with those distinct IDs.
-     */
-    distinct_ids?: {[key: string]: unknown};
     format?: EnvironmentsPersonsBulkDeleteCreateFormat;
-    /**
-     * A list of PostHog person IDs, up to 1000 of them. We'll delete all the persons listed.
-     */
-    ids?: {[key: string]: unknown};
-    /**
-     * If true, the person record itself will not be deleted. This is useful if you want to keep the person record for auditing purposes but remove events and recordings associated with them
-     */
-    keep_person?: boolean;
     };
 
     export type EnvironmentsPersonsBulkDeleteCreateFormat = typeof EnvironmentsPersonsBulkDeleteCreateFormat[keyof typeof EnvironmentsPersonsBulkDeleteCreateFormat];
@@ -28235,6 +28252,10 @@ export namespace Schemas {
 
     export type EnvironmentsPersonsCohortsRetrieveParams = {
     format?: EnvironmentsPersonsCohortsRetrieveFormat;
+    /**
+     * The person ID or UUID to get cohorts for.
+     */
+    person_id: string;
     };
 
     export type EnvironmentsPersonsCohortsRetrieveFormat = typeof EnvironmentsPersonsCohortsRetrieveFormat[keyof typeof EnvironmentsPersonsCohortsRetrieveFormat];
@@ -28375,6 +28396,14 @@ export namespace Schemas {
 
     export type EnvironmentsPersonsValuesRetrieveParams = {
     format?: EnvironmentsPersonsValuesRetrieveFormat;
+    /**
+     * The person property key to get values for (e.g., 'email', 'plan', 'role').
+     */
+    key: string;
+    /**
+     * Optional search string to filter values (case-insensitive substring match).
+     */
+    value?: string;
     };
 
     export type EnvironmentsPersonsValuesRetrieveFormat = typeof EnvironmentsPersonsValuesRetrieveFormat[keyof typeof EnvironmentsPersonsValuesRetrieveFormat];
@@ -30964,10 +30993,6 @@ export namespace Schemas {
     } as const;
 
     export type PersonsDeletePropertyCreateParams = {
-    /**
-     * Specify the property key to delete
-     */
-    $unset: string;
     format?: PersonsDeletePropertyCreateFormat;
     };
 
@@ -31005,14 +31030,6 @@ export namespace Schemas {
 
     export type PersonsUpdatePropertyCreateParams = {
     format?: PersonsUpdatePropertyCreateFormat;
-    /**
-     * Specify the property key
-     */
-    key: string;
-    /**
-     * Specify the property value
-     */
-    value: unknown;
     };
 
     export type PersonsUpdatePropertyCreateFormat = typeof PersonsUpdatePropertyCreateFormat[keyof typeof PersonsUpdatePropertyCreateFormat];
@@ -31048,27 +31065,7 @@ export namespace Schemas {
     } as const;
 
     export type PersonsBulkDeleteCreateParams = {
-    /**
-     * If true, a task to delete all events associated with this person will be created and queued. The task does not run immediately and instead is batched together and at 5AM UTC every Sunday
-     */
-    delete_events?: boolean;
-    /**
-     * If true, a task to delete all recordings associated with this person will be created and queued. The task does not run immediately and instead is batched together and at 5AM UTC every Sunday
-     */
-    delete_recordings?: boolean;
-    /**
-     * A list of distinct IDs, up to 1000 of them. We'll delete all persons associated with those distinct IDs.
-     */
-    distinct_ids?: {[key: string]: unknown};
     format?: PersonsBulkDeleteCreateFormat;
-    /**
-     * A list of PostHog person IDs, up to 1000 of them. We'll delete all the persons listed.
-     */
-    ids?: {[key: string]: unknown};
-    /**
-     * If true, the person record itself will not be deleted. This is useful if you want to keep the person record for auditing purposes but remove events and recordings associated with them
-     */
-    keep_person?: boolean;
     };
 
     export type PersonsBulkDeleteCreateFormat = typeof PersonsBulkDeleteCreateFormat[keyof typeof PersonsBulkDeleteCreateFormat];
@@ -31081,6 +31078,10 @@ export namespace Schemas {
 
     export type PersonsCohortsRetrieveParams = {
     format?: PersonsCohortsRetrieveFormat;
+    /**
+     * The person ID or UUID to get cohorts for.
+     */
+    person_id: string;
     };
 
     export type PersonsCohortsRetrieveFormat = typeof PersonsCohortsRetrieveFormat[keyof typeof PersonsCohortsRetrieveFormat];
@@ -31221,6 +31222,14 @@ export namespace Schemas {
 
     export type PersonsValuesRetrieveParams = {
     format?: PersonsValuesRetrieveFormat;
+    /**
+     * The person property key to get values for (e.g., 'email', 'plan', 'role').
+     */
+    key: string;
+    /**
+     * Optional search string to filter values (case-insensitive substring match).
+     */
+    value?: string;
     };
 
     export type PersonsValuesRetrieveFormat = typeof PersonsValuesRetrieveFormat[keyof typeof PersonsValuesRetrieveFormat];
