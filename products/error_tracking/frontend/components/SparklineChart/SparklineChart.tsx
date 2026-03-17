@@ -339,6 +339,6 @@ function buildSpikePattern(svg: d3.Selection<SVGSVGElement, unknown, null, undef
         .attr('type', 'translate')
         .attr('from', '0 0')
         .attr('to', `0 -${size}`)
-        .attr('dur', '0.6s')
+        .attr('dur', '1s')
         .attr('repeatCount', 'indefinite')
 }
