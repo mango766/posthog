@@ -69,9 +69,7 @@ export function useSparklineDataIssueScene(spikeEvents: ErrorTrackingSpikeEvent[
     return useMemo(() => applySpikeColors(data, spikeEvents), [data, spikeEvents])
 }
 
-const SPIKE_COLOR = 'var(--brand-yellow)'
-
-export function applySpikeColors(data: SparklineData, spikeEvents: ErrorTrackingSpikeEvent[]): SparklineData {
+function applySpikeColors(data: SparklineData, spikeEvents: ErrorTrackingSpikeEvent[]): SparklineData {
     if (spikeEvents.length === 0 || data.length < 2) {
         return data
     }
@@ -82,6 +80,6 @@ export function applySpikeColors(data: SparklineData, spikeEvents: ErrorTracking
     return data.map((datum) => {
         const datumTime = datum.date.getTime()
         const hasSpikeInBin = spikeTimestamps.some((st) => st >= datumTime && st < datumTime + binSizeMs)
-        return hasSpikeInBin ? { ...datum, color: SPIKE_COLOR, animated: true } : datum
+        return hasSpikeInBin ? { ...datum, color: 'var(--brand-yellow)', animated: true } : datum
     })
 }

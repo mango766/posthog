@@ -1,13 +1,10 @@
-import { useValues } from 'kea'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 
-import { Chart } from 'lib/Chart'
+import type { Chart } from 'lib/Chart'
 import { getColorVar } from 'lib/colors'
 import { ErrorTrackingSpikeEvent } from 'lib/components/Errors/types'
 import { AnyScaleOptions, Sparkline } from 'lib/components/Sparkline'
 import { dayjs } from 'lib/dayjs'
-
-import { themeLogic } from '~/layout/navigation-3000/themeLogic'
 
 import { useDefaultSparklineColorVars, useSparklineOptions } from '../hooks/use-sparkline-options'
 import { SparklineData, SparklineOptions } from './SparklineChart/SparklineChart'
@@ -16,47 +13,67 @@ const STRIPE_SIZE = 12
 
 function createSpikePatternCanvas(): HTMLCanvasElement {
     const s = STRIPE_SIZE
-    const patternCanvas = document.createElement('canvas')
-    patternCanvas.width = s
-    patternCanvas.height = s
-    const pctx = patternCanvas.getContext('2d')
-    if (!pctx) {
-        return patternCanvas
+    const canvas = document.createElement('canvas')
+    canvas.width = s
+    canvas.height = s
+    const ctx = canvas.getContext('2d')
+    if (!ctx) {
+        return canvas
     }
 
-    // Fill entire tile yellow
-    pctx.fillStyle = getColorVar('brand-yellow')
-    pctx.fillRect(0, 0, s, s)
+    ctx.fillStyle = getColorVar('brand-yellow')
+    ctx.fillRect(0, 0, s, s)
 
-    // Paint equal-width diagonal stripes pixel-by-pixel
-    // (x+y) % s >= s/2 selects every other diagonal band in the `/` direction
-    pctx.fillStyle = 'rgba(255,255,255,0.4)'
+    // Equal-width diagonal stripes: (x+y) % s >= s/2 selects every other band in the `/` direction
+    ctx.fillStyle = 'rgba(255,255,255,0.4)'
     for (let y = 0; y < s; y++) {
         for (let x = 0; x < s; x++) {
             if ((x + y) % s >= s / 2) {
-                pctx.fillRect(x, y, 1, 1)
+                ctx.fillRect(x, y, 1, 1)
             }
         }
     }
 
-    return patternCanvas
+    return canvas
 }
 
 let sharedPatternCanvas: HTMLCanvasElement | null = null
 
-function getPatternCanvas(): HTMLCanvasElement {
+function createSpikePattern(): CanvasPattern | null {
     if (!sharedPatternCanvas) {
         sharedPatternCanvas = createSpikePatternCanvas()
     }
-    return sharedPatternCanvas
+    // Each instance needs its own CanvasPattern so setTransform() doesn't affect others
+    const ctx = document.createElement('canvas').getContext('2d')
+    return ctx?.createPattern(sharedPatternCanvas, 'repeat') ?? null
 }
 
-function createSpikePattern(): CanvasPattern | null {
-    const resolveCanvas = document.createElement('canvas')
-    resolveCanvas.width = 1
-    resolveCanvas.height = 1
-    const resolveCtx = resolveCanvas.getContext('2d')
-    return resolveCtx?.createPattern(getPatternCanvas(), 'repeat') ?? null
+function hasSpikeInBin(datumTime: number, binSizeMs: number, spikeTimestamps: number[]): boolean {
+    return spikeTimestamps.some((st) => st >= datumTime && st < datumTime + binSizeMs)
+}
+
+function buildSeriesData(
+    data: SparklineData,
+    options: SparklineOptions,
+    spikeEvents: ErrorTrackingSpikeEvent[],
+    spikePattern: CanvasPattern | null
+): any[] {
+    const series: any = {
+        values: data.map((d) => d.value),
+        name: 'Occurrences',
+        color: options.backgroundColor,
+        hoverColor: options.hoverBackgroundColor,
+    }
+
+    if (spikeEvents.length > 0 && data.length >= 2 && spikePattern) {
+        const binSizeMs = data[1].date.getTime() - data[0].date.getTime()
+        const spikeTimestamps = spikeEvents.map((s) => new Date(s.detected_at).getTime())
+        series.barColors = data.map((datum) =>
+            hasSpikeInBin(datum.date.getTime(), binSizeMs, spikeTimestamps) ? spikePattern : options.backgroundColor
+        )
+    }
+
+    return [series]
 }
 
 export function OccurrenceSparkline({
@@ -68,7 +85,6 @@ export function OccurrenceSparkline({
     data: SparklineData
     className?: string
     displayXAxis?: boolean
-    loading?: boolean
     spikeEvents?: ErrorTrackingSpikeEvent[]
 }): JSX.Element {
     const colorVars = useDefaultSparklineColorVars()
@@ -82,28 +98,22 @@ export function OccurrenceSparkline({
     const hasSpikes = spikeEvents.length > 0
 
     const [occurrences, labels, labelRenderer] = useMemo(() => {
-        let pattern: CanvasPattern | null = null
-        if (hasSpikes) {
-            pattern = createSpikePattern()
-            spikePatternRef.current = pattern
-        }
+        const pattern = hasSpikes ? createSpikePattern() : null
+        spikePatternRef.current = pattern
 
         return [
-            wrapDataWithColor(data, options, spikeEvents, pattern),
+            buildSeriesData(data, options, spikeEvents, pattern),
             data.map((value) => dayjs(value.date).toISOString()),
-            (label: string) => {
-                return dayjs(label).format('D MMM YYYY HH:mm (UTC)')
-            },
+            (label: string) => dayjs(label).format('D MMM YYYY HH:mm (UTC)'),
         ]
     }, [data, options, spikeEvents, hasSpikes])
 
-    // Animate the stripe pattern only for sparklines that have spikes
     useEffect(() => {
         if (!hasSpikes) {
             return
         }
 
-        let animationFrameId: number
+        let frameId: number
         let offset = 0
         const speed = STRIPE_SIZE / 140
 
@@ -115,34 +125,23 @@ export function OccurrenceSparkline({
                 pattern.setTransform(new DOMMatrix().translateSelf(0, -offset))
                 chart.update('none')
             }
-            animationFrameId = requestAnimationFrame(animate)
+            frameId = requestAnimationFrame(animate)
         }
 
-        animationFrameId = requestAnimationFrame(animate)
-        return () => cancelAnimationFrame(animationFrameId)
+        frameId = requestAnimationFrame(animate)
+        return () => cancelAnimationFrame(frameId)
     }, [hasSpikes])
 
-    const withXScale = useCallback((scale: AnyScaleOptions) => {
-        return {
-            ...scale,
-            type: 'timeseries',
-            ticks: {
-                display: true,
-                maxRotation: 0,
-                maxTicksLimit: 5,
-                font: {
-                    size: 10,
-                    lineHeight: 1,
-                },
-            },
-            time: {
-                unit: 'day',
-                displayFormats: {
-                    day: 'D MMM',
-                },
-            },
-        } as AnyScaleOptions
-    }, [])
+    const withXScale = useCallback(
+        (scale: AnyScaleOptions) =>
+            ({
+                ...scale,
+                type: 'timeseries',
+                ticks: { display: true, maxRotation: 0, maxTicksLimit: 5, font: { size: 10, lineHeight: 1 } },
+                time: { unit: 'day', displayFormats: { day: 'D MMM' } },
+            }) as AnyScaleOptions,
+        []
+    )
 
     return (
         <Sparkline
@@ -154,42 +153,4 @@ export function OccurrenceSparkline({
             chartInstanceRef={chartInstanceRef}
         />
     )
-}
-
-export function useSparklineColors(): { color: string; hoverColor: string } {
-    const { isDarkModeOn } = useValues(themeLogic)
-
-    return useMemo(() => {
-        return {
-            color: isDarkModeOn ? 'primitive-neutral-600' : 'primitive-neutral-200',
-            hoverColor: isDarkModeOn ? 'primitive-neutral-200' : 'primitive-neutral-700',
-        }
-    }, [isDarkModeOn])
-}
-
-function wrapDataWithColor(
-    data: SparklineData,
-    options: SparklineOptions,
-    spikeEvents: ErrorTrackingSpikeEvent[] = [],
-    spikePattern: CanvasPattern | null = null
-): any[] {
-    const series: any = {
-        values: data.map((d) => d.value),
-        name: 'Occurrences',
-        color: options.backgroundColor,
-        hoverColor: options.hoverBackgroundColor,
-    }
-
-    if (spikeEvents.length > 0 && data.length >= 2 && spikePattern) {
-        const binSizeMs = data[1].date.getTime() - data[0].date.getTime()
-        const spikeTimestamps = spikeEvents.map((s) => new Date(s.detected_at).getTime())
-
-        series.barColors = data.map((datum) => {
-            const datumTime = datum.date.getTime()
-            const hasSpikeInBin = spikeTimestamps.some((st) => st >= datumTime && st < datumTime + binSizeMs)
-            return hasSpikeInBin ? spikePattern : options.backgroundColor
-        })
-    }
-
-    return [series]
 }
