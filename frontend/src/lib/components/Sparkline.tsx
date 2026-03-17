@@ -1,9 +1,9 @@
 import clsx from 'clsx'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { Popover } from '@posthog/lemon-ui'
 
-import { ScaleOptions, TooltipModel } from 'lib/Chart'
+import { Chart, ScaleOptions, TooltipModel } from 'lib/Chart'
 import { getColorVar } from 'lib/colors'
 import { useChart } from 'lib/hooks/useChart'
 import { useEventListener } from 'lib/hooks/useEventListener'
@@ -78,6 +78,7 @@ export function Sparkline({
     tooltipRowCutoff,
     hideZerosInTooltip = false,
     sortTooltipByCount = false,
+    chartInstanceRef,
 }: SparklineProps): JSX.Element {
     const tooltipRef = useRef<HTMLDivElement | null>(null)
 
@@ -120,7 +121,7 @@ export function Sparkline({
         })
     }, [data]) // oxlint-disable-line react-hooks/exhaustive-deps
 
-    const { canvasRef } = useChart({
+    const { canvasRef, chartRef } = useChart({
         getConfig: () => {
             // data should always be provided but React can render this without it,
             // so, fall back to null for safety
@@ -232,6 +233,13 @@ export function Sparkline({
             }
         },
         deps: [labels, adjustedData, withXScale, withYScale, renderLabel, data, maximumIndicator, type],
+    })
+
+    // Expose the Chart.js instance to the parent for direct updates (e.g. animation)
+    useEffect(() => {
+        if (chartInstanceRef) {
+            chartInstanceRef.current = chartRef.current
+        }
     })
 
     const dataPointCount = adjustedData[0]?.values?.length || 0
