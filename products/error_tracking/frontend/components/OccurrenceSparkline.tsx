@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 
+import { IconTrending } from '@posthog/icons'
+
 import type { Chart } from 'lib/Chart'
 import { getColorVar } from 'lib/colors'
 import { ErrorTrackingSpikeEvent } from 'lib/components/Errors/types'
@@ -79,13 +81,18 @@ function hasSpikeInBin(datumTime: number, binSizeMs: number, spikeTimestamps: nu
     return spikeTimestamps.some((st) => st >= datumTime && st < datumTime + binSizeMs)
 }
 
+interface BuildResult {
+    series: any[]
+    spikeFlags: boolean[]
+}
+
 function buildSeriesData(
     data: SparklineData,
     options: SparklineOptions,
     spikeEvents: ErrorTrackingSpikeEvent[],
     spikePattern: CanvasPattern | null,
     spikeHoverPattern: CanvasPattern | null
-): any[] {
+): BuildResult {
     const series: any = {
         values: data.map((d) => d.value),
         name: 'Occurrences',
@@ -93,17 +100,19 @@ function buildSeriesData(
         hoverColor: options.hoverBackgroundColor,
     }
 
+    let spikeFlags: boolean[] = []
+
     if (spikeEvents.length > 0 && data.length >= 2 && spikePattern) {
         const binSizeMs = data[1].date.getTime() - data[0].date.getTime()
         const spikeTimestamps = spikeEvents.map((s) => new Date(s.detected_at).getTime())
-        const spikeFlags = data.map((datum) => hasSpikeInBin(datum.date.getTime(), binSizeMs, spikeTimestamps))
+        spikeFlags = data.map((datum) => hasSpikeInBin(datum.date.getTime(), binSizeMs, spikeTimestamps))
         series.barColors = spikeFlags.map((isSpike) => (isSpike ? spikePattern : options.backgroundColor))
         series.barHoverColors = spikeFlags.map((isSpike) =>
             isSpike ? (spikeHoverPattern ?? spikePattern) : options.hoverBackgroundColor
         )
     }
 
-    return [series]
+    return { series: [series], spikeFlags }
 }
 
 export function OccurrenceSparkline({
@@ -128,18 +137,38 @@ export function OccurrenceSparkline({
     const spikeHoverPatternRef = useRef<CanvasPattern | null>(null)
     const hasSpikes = spikeEvents.length > 0
 
-    const [occurrences, labels, labelRenderer] = useMemo(() => {
+    const [occurrences, labels, labelRenderer, spikeFlags] = useMemo(() => {
         const pattern = hasSpikes ? createSpikePattern() : null
         const hoverPattern = hasSpikes ? createSpikeHoverPattern() : null
         spikePatternRef.current = pattern
         spikeHoverPatternRef.current = hoverPattern
 
+        const result = buildSeriesData(data, options, spikeEvents, pattern, hoverPattern)
         return [
-            buildSeriesData(data, options, spikeEvents, pattern, hoverPattern),
+            result.series,
             data.map((value) => dayjs(value.date).toISOString()),
             (label: string) => dayjs(label).format('D MMM YYYY HH:mm (UTC)'),
+            result.spikeFlags,
         ]
     }, [data, options, spikeEvents, hasSpikes])
+
+    const renderTooltipSeries = useCallback(
+        (label: React.ReactNode, dataIndex: number): React.ReactNode => {
+            if (!spikeFlags[dataIndex]) {
+                return label
+            }
+            return (
+                <span className="inline-flex items-center gap-1">
+                    {label}
+                    <span className="inline-flex items-center gap-0.5 text-warning-dark font-semibold">
+                        <IconTrending className="text-sm" />
+                        Spike
+                    </span>
+                </span>
+            )
+        },
+        [spikeFlags]
+    )
 
     useEffect(() => {
         if (!hasSpikes) {
@@ -187,6 +216,7 @@ export function OccurrenceSparkline({
             renderLabel={labelRenderer}
             withXScale={displayXAxis ? withXScale : undefined}
             chartInstanceRef={chartInstanceRef}
+            renderTooltipSeries={hasSpikes ? renderTooltipSeries : undefined}
         />
     )
 }

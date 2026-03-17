@@ -60,6 +60,8 @@ interface SparklineProps {
     sortTooltipByCount?: boolean
     /** Ref to access the Chart.js instance for direct updates (e.g. animation). */
     chartInstanceRef?: React.MutableRefObject<Chart | null>
+    /** Custom series label renderer for tooltip. Receives default label node and data index. */
+    renderTooltipSeries?: (label: React.ReactNode, dataIndex: number) => React.ReactNode
 }
 
 export function Sparkline({
@@ -81,6 +83,7 @@ export function Sparkline({
     hideZerosInTooltip = false,
     sortTooltipByCount = false,
     chartInstanceRef,
+    renderTooltipSeries,
 }: SparklineProps): JSX.Element {
     const tooltipRef = useRef<HTMLDivElement | null>(null)
 
@@ -368,7 +371,11 @@ export function Sparkline({
                                 }))
                                 .filter((item) => !hideZerosInTooltip || item.count > 0)
                                 .sort((a, b) => (sortTooltipByCount ? b.count - a.count : a.order - b.order))}
-                            renderSeries={(value) => value}
+                            renderSeries={(value) =>
+                                renderTooltipSeries && toolTipDataPoints.length > 0
+                                    ? renderTooltipSeries(value, toolTipDataPoints[0].dataIndex)
+                                    : value
+                            }
                             renderCount={(count) => humanFriendlyNumber(count)}
                             rowCutoff={tooltipRowCutoff}
                         />
