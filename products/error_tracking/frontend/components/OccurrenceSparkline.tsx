@@ -12,7 +12,7 @@ import { themeLogic } from '~/layout/navigation-3000/themeLogic'
 import { useDefaultSparklineColorVars, useSparklineOptions } from '../hooks/use-sparkline-options'
 import { SparklineData, SparklineOptions } from './SparklineChart/SparklineChart'
 
-const STRIPE_SIZE = 8
+const STRIPE_SIZE = 12
 
 function createSpikePatternCanvas(): HTMLCanvasElement {
     const s = STRIPE_SIZE
