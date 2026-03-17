@@ -282,7 +282,9 @@ export function LineGraph_({
     const { timezone, isTrends, isFunnels, breakdownFilter, interval, insightData } = useValues(
         insightVizDataLogic(insightProps)
     )
-    const { theme, getTrendsColor, getTrendsHidden, hoveredDatasetIndex } = useValues(trendsDataLogic(insightProps))
+    const { theme, getTrendsColor, getTrendsHidden, hoveredDatasetIndex, currentPeriodResult } = useValues(
+        trendsDataLogic(insightProps)
+    )
     const { setHoveredDatasetIndex } = useActions(trendsDataLogic(insightProps))
 
     const { tooltipId, hideTooltip, showTooltip, getTooltip, positionTooltip } = useInsightTooltip()
@@ -574,7 +576,7 @@ export function LineGraph_({
             const xAxisTickCallback = featureFlags[FEATURE_FLAGS.DASHBOARD_TILE_REDESIGN]
                 ? createXAxisTickCallback({
                       interval: interval ?? 'day',
-                      allDays: filteredDatasets[0]?.days ?? [],
+                      allDays: currentPeriodResult?.days ?? [],
                       timezone,
                   })
                 : undefined
