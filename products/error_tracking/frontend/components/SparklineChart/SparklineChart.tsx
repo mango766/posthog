@@ -316,7 +316,7 @@ function spikeBarFill(d: SparklineDatum, defaultColor: string): string {
 }
 
 function buildSpikePattern(svg: d3.Selection<SVGSVGElement, unknown, null, undefined>, color: string): void {
-    const size = 6
+    const size = 12
     const defs = svg.append('defs')
     const pattern = defs
         .append('pattern')
@@ -330,8 +330,8 @@ function buildSpikePattern(svg: d3.Selection<SVGSVGElement, unknown, null, undef
     pattern
         .append('path')
         .attr('d', `M-1,1 l2,-2 M0,${size} l${size},-${size} M${size - 1},${size + 1} l2,-2`)
-        .attr('stroke', 'rgba(255,255,255,0.35)')
-        .attr('stroke-width', 2)
+        .attr('stroke', 'rgba(255,255,255,0.4)')
+        .attr('stroke-width', (size * Math.SQRT2) / 4)
 
     pattern
         .append('animateTransform')
@@ -339,6 +339,6 @@ function buildSpikePattern(svg: d3.Selection<SVGSVGElement, unknown, null, undef
         .attr('type', 'translate')
         .attr('from', '0 0')
         .attr('to', `0 -${size}`)
-        .attr('dur', '1s')
+        .attr('dur', '1.5s')
         .attr('repeatCount', 'indefinite')
 }
