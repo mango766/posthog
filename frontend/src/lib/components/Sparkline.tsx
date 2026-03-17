@@ -18,6 +18,8 @@ export interface SparklineTimeSeries {
     values: number[]
     /** Check vars.scss for available colors. @default 'muted' */
     color?: string
+    /** Per-bar color overrides. When provided, takes precedence over `color`. */
+    barColors?: string[]
     hoverColor?: string
 }
 
@@ -182,12 +184,15 @@ export function Sparkline({
                     datasets: adjustedData.map((timeseries) => {
                         const seriesColor = getColorVar(timeseries.color || 'muted')
                         const hoverColor = getColorVar(timeseries.hoverColor || timeseries.color || 'muted')
+                        const bgColor = timeseries.barColors
+                            ? timeseries.barColors.map((c) => getColorVar(c))
+                            : seriesColor
                         return {
                             label: timeseries.name,
                             data: timeseries.values,
                             minBarLength: 0,
                             categoryPercentage: 0.9, // Slightly tighter bar spacing than the default 0.8
-                            backgroundColor: seriesColor,
+                            backgroundColor: bgColor,
                             hoverBackgroundColor: hoverColor,
                             borderColor: seriesColor,
                             borderWidth: type === 'line' ? 2 : 0,

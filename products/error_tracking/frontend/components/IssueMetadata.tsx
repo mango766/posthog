@@ -11,7 +11,7 @@ import { humanFriendlyLargeNumber } from 'lib/utils'
 import { ErrorTrackingIssueAggregations } from '~/queries/schema/schema-general'
 
 import { useSparklineDataIssueScene } from '../hooks/use-sparkline-data'
-import { useSparklineEvents } from '../hooks/use-sparkline-events'
+import { useSpikeEvents, useSparklineEvents } from '../hooks/use-sparkline-events'
 import { useSparklineOptions } from '../hooks/use-sparkline-options'
 import { errorTrackingIssueSceneLogic } from '../scenes/ErrorTrackingIssueScene/errorTrackingIssueSceneLogic'
 import { cancelEvent } from '../utils'
@@ -30,9 +30,11 @@ type SelectedDataType =
     | null
 
 export const Metadata = ({ children, className }: PropsWithChildren<{ className?: string }>): JSX.Element => {
-    const { aggregations, summaryLoading, issueLoading, firstSeen, lastSeen } = useValues(errorTrackingIssueSceneLogic)
+    const { aggregations, summaryLoading, issueLoading, firstSeen, lastSeen, issue } =
+        useValues(errorTrackingIssueSceneLogic)
     const [hoveredDatum, setHoveredDatum] = useState<SelectedDataType>(null)
-    const sparklineData = useSparklineDataIssueScene()
+    const spikeEvents = useSpikeEvents(issue?.id)
+    const sparklineData = useSparklineDataIssueScene(spikeEvents)
     const sparklineEvents = useSparklineEvents()
     const sparklineOptions = useSparklineOptions(
         {

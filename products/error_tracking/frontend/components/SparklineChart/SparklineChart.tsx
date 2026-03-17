@@ -8,6 +8,7 @@ export type SparklineDatum = {
     date: Date
     value: number
     label?: string
+    color?: string
 }
 
 export type SparklineEvent<T> = {
@@ -122,8 +123,9 @@ function buildBarGroup(
         })
         .on('mouseout', function (this, _, d: unknown) {
             const current = d3.select(this)
-            options.onDatumMouseLeave?.(d as SparklineDatum)
-            current.select('.bar').style('fill', options.backgroundColor)
+            const datum = d as SparklineDatum
+            options.onDatumMouseLeave?.(datum)
+            current.select('.bar').style('fill', datum.color || options.backgroundColor)
         })
 
     group
@@ -133,7 +135,7 @@ function buildBarGroup(
         .attr('y', (d) => yScale(d.value) + options.borderRadius)
         .attr('width', bandwidth * 0.9)
         .attr('height', (d) => (d && d.value > 0 ? contentHeight - yScale(d.value) : 0))
-        .style('fill', options.backgroundColor)
+        .style('fill', (d) => d.color || options.backgroundColor)
         .style('clip-path', `inset(0 0 ${options.borderRadius + 1}px 0)`) // Offset by 1px to avoid overlapping on x axis
         .attr('rx', options.borderRadius)
         .attr('ry', options.borderRadius)

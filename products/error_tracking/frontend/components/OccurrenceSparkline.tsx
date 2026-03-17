@@ -1,6 +1,7 @@
 import { useValues } from 'kea'
 import { useCallback, useMemo } from 'react'
 
+import { ErrorTrackingSpikeEvent } from 'lib/components/Errors/types'
 import { AnyScaleOptions, Sparkline } from 'lib/components/Sparkline'
 import { dayjs } from 'lib/dayjs'
 
@@ -13,11 +14,13 @@ export function OccurrenceSparkline({
     data,
     className,
     displayXAxis = false,
+    spikeEvents = [],
 }: {
     data: SparklineData
     className?: string
     displayXAxis?: boolean
     loading?: boolean
+    spikeEvents?: ErrorTrackingSpikeEvent[]
 }): JSX.Element {
     const colorVars = useDefaultSparklineColorVars()
     const options = useSparklineOptions({
@@ -26,13 +29,13 @@ export function OccurrenceSparkline({
     })
     const [occurrences, labels, labelRenderer] = useMemo(() => {
         return [
-            wrapDataWithColor(data, options),
+            wrapDataWithColor(data, options, spikeEvents),
             data.map((value) => dayjs(value.date).toISOString()),
             (label: string) => {
                 return dayjs(label).format('D MMM YYYY HH:mm (UTC)')
             },
         ]
-    }, [data, options])
+    }, [data, options, spikeEvents])
 
     const withXScale = useCallback((scale: AnyScaleOptions) => {
         return {
@@ -78,13 +81,30 @@ export function useSparklineColors(): { color: string; hoverColor: string } {
     }, [isDarkModeOn])
 }
 
-function wrapDataWithColor(data: SparklineData, options: SparklineOptions): any[] {
-    return [
-        {
-            values: data.map((d) => d.value),
-            name: 'Occurrences',
-            color: options.backgroundColor,
-            hoverColor: options.hoverBackgroundColor,
-        },
-    ]
+const SPIKE_COLOR_VAR = 'brand-yellow'
+
+function wrapDataWithColor(
+    data: SparklineData,
+    options: SparklineOptions,
+    spikeEvents: ErrorTrackingSpikeEvent[] = []
+): any[] {
+    const series: any = {
+        values: data.map((d) => d.value),
+        name: 'Occurrences',
+        color: options.backgroundColor,
+        hoverColor: options.hoverBackgroundColor,
+    }
+
+    if (spikeEvents.length > 0 && data.length >= 2) {
+        const binSizeMs = data[1].date.getTime() - data[0].date.getTime()
+        const spikeTimestamps = spikeEvents.map((s) => new Date(s.detected_at).getTime())
+
+        series.barColors = data.map((datum) => {
+            const datumTime = datum.date.getTime()
+            const hasSpikeInBin = spikeTimestamps.some((st) => st >= datumTime && st < datumTime + binSizeMs)
+            return hasSpikeInBin ? SPIKE_COLOR_VAR : options.backgroundColor
+        })
+    }
+
+    return [series]
 }

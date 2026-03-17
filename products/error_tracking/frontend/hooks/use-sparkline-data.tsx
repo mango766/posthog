@@ -1,6 +1,7 @@
 import { useValues } from 'kea'
 import { useMemo } from 'react'
 
+import { ErrorTrackingSpikeEvent } from 'lib/components/Errors/types'
 import { dateStringToDayJs } from 'lib/utils'
 
 import { DateRange, ErrorTrackingIssueAggregations } from '~/queries/schema/schema-general'
@@ -62,7 +63,25 @@ export function useSparklineData(
     }, [aggregations, volumeResolution, dateRange])
 }
 
-export function useSparklineDataIssueScene(): SparklineData {
+export function useSparklineDataIssueScene(spikeEvents: ErrorTrackingSpikeEvent[] = []): SparklineData {
     const { aggregations, dateRange } = useValues(errorTrackingIssueSceneLogic)
-    return useSparklineData(aggregations, ERROR_TRACKING_DETAILS_RESOLUTION, dateRange)
+    const data = useSparklineData(aggregations, ERROR_TRACKING_DETAILS_RESOLUTION, dateRange)
+    return useMemo(() => applySpikeColors(data, spikeEvents), [data, spikeEvents])
+}
+
+const SPIKE_COLOR = 'var(--brand-yellow)'
+
+export function applySpikeColors(data: SparklineData, spikeEvents: ErrorTrackingSpikeEvent[]): SparklineData {
+    if (spikeEvents.length === 0 || data.length < 2) {
+        return data
+    }
+
+    const binSizeMs = data[1].date.getTime() - data[0].date.getTime()
+    const spikeTimestamps = spikeEvents.map((s) => new Date(s.detected_at).getTime())
+
+    return data.map((datum) => {
+        const datumTime = datum.date.getTime()
+        const hasSpikeInBin = spikeTimestamps.some((st) => st >= datumTime && st < datumTime + binSizeMs)
+        return hasSpikeInBin ? { ...datum, color: SPIKE_COLOR } : datum
+    })
 }

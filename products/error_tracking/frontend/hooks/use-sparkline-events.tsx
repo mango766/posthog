@@ -9,17 +9,7 @@ import { SparklineEvent } from '../components/SparklineChart/SparklineChart'
 import { errorTrackingIssueSceneLogic } from '../scenes/ErrorTrackingIssueScene/errorTrackingIssueSceneLogic'
 
 export function useSparklineEvents(): SparklineEvent<string>[] {
-    const { firstSeen, lastSeen, selectedEvent, issue } = useValues(errorTrackingIssueSceneLogic)
-    const [spikeEvents, setSpikeEvents] = useState<ErrorTrackingSpikeEvent[]>([])
-
-    useEffect(() => {
-        if (issue?.id) {
-            api.errorTracking
-                .getSpikeEvents(issue.id)
-                .then((response) => setSpikeEvents(response.results))
-                .catch(() => setSpikeEvents([]))
-        }
-    }, [issue?.id])
+    const { firstSeen, lastSeen, selectedEvent } = useValues(errorTrackingIssueSceneLogic)
 
     return useMemo(() => {
         const events = []
@@ -41,15 +31,6 @@ export function useSparklineEvents(): SparklineEvent<string>[] {
                 radius: 6,
             })
         }
-        for (const spike of spikeEvents) {
-            events.push({
-                id: `spike_${spike.id}`,
-                date: new Date(spike.detected_at),
-                color: 'var(--brand-red)',
-                payload: 'Spike',
-                radius: 5,
-            })
-        }
         if (lastSeen) {
             events.push({
                 id: 'last_seen',
@@ -60,7 +41,22 @@ export function useSparklineEvents(): SparklineEvent<string>[] {
             })
         }
         return events
-    }, [firstSeen, lastSeen, selectedEvent, spikeEvents])
+    }, [firstSeen, lastSeen, selectedEvent])
+}
+
+export function useSpikeEvents(issueId: string | undefined): ErrorTrackingSpikeEvent[] {
+    const [spikeEvents, setSpikeEvents] = useState<ErrorTrackingSpikeEvent[]>([])
+
+    useEffect(() => {
+        if (issueId) {
+            api.errorTracking
+                .getSpikeEvents(issueId)
+                .then((response) => setSpikeEvents(response.results))
+                .catch(() => setSpikeEvents([]))
+        }
+    }, [issueId])
+
+    return spikeEvents
 }
 
 function isFirstOrLastEvent(
