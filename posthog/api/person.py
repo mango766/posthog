@@ -163,7 +163,9 @@ class PersonsDeleteSustainedThrottle(PersonalApiKeyRateThrottle):
 
 
 class PersonSerializer(serializers.HyperlinkedModelSerializer):
-    name = serializers.SerializerMethodField()
+    name = serializers.SerializerMethodField(
+        help_text="Display name derived from person properties (email, name, or username)."
+    )
 
     class Meta:
         model = Person
@@ -177,6 +179,13 @@ class PersonSerializer(serializers.HyperlinkedModelSerializer):
             "last_seen_at",
         ]
         read_only_fields = ("id", "name", "distinct_ids", "created_at", "uuid", "last_seen_at")
+        extra_kwargs = {
+            "id": {"help_text": "Numeric person ID."},
+            "uuid": {"help_text": "Unique identifier (UUID) for this person."},
+            "properties": {"help_text": "Key-value map of person properties set via $set and $set_once operations."},
+            "created_at": {"help_text": "When this person was first seen (ISO 8601)."},
+            "last_seen_at": {"help_text": "Timestamp of the last event from this person, or null."},
+        }
 
     def get_name(self, person: Person) -> str:
         team = self.context["get_team"]()
