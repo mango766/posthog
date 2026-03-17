@@ -12,31 +12,32 @@ import { themeLogic } from '~/layout/navigation-3000/themeLogic'
 import { useDefaultSparklineColorVars, useSparklineOptions } from '../hooks/use-sparkline-options'
 import { SparklineData, SparklineOptions } from './SparklineChart/SparklineChart'
 
-const STRIPE_SIZE = 6
+const STRIPE_SIZE = 8
 
 function createSpikePatternCanvas(): HTMLCanvasElement {
+    const s = STRIPE_SIZE
     const patternCanvas = document.createElement('canvas')
-    patternCanvas.width = STRIPE_SIZE
-    patternCanvas.height = STRIPE_SIZE
+    patternCanvas.width = s
+    patternCanvas.height = s
     const pctx = patternCanvas.getContext('2d')
     if (!pctx) {
         return patternCanvas
     }
 
-    const spikeColor = getColorVar('brand-yellow')
-    pctx.fillStyle = spikeColor
-    pctx.fillRect(0, 0, STRIPE_SIZE, STRIPE_SIZE)
+    // Fill entire tile yellow
+    pctx.fillStyle = getColorVar('brand-yellow')
+    pctx.fillRect(0, 0, s, s)
 
-    pctx.strokeStyle = 'rgba(255,255,255,0.35)'
-    pctx.lineWidth = 2
-    pctx.beginPath()
-    pctx.moveTo(-1, 1)
-    pctx.lineTo(1, -1)
-    pctx.moveTo(0, STRIPE_SIZE)
-    pctx.lineTo(STRIPE_SIZE, 0)
-    pctx.moveTo(STRIPE_SIZE - 1, STRIPE_SIZE + 1)
-    pctx.lineTo(STRIPE_SIZE + 1, STRIPE_SIZE - 1)
-    pctx.stroke()
+    // Paint equal-width diagonal stripes pixel-by-pixel
+    // (x+y) % s >= s/2 selects every other diagonal band in the `/` direction
+    pctx.fillStyle = 'rgba(255,255,255,0.4)'
+    for (let y = 0; y < s; y++) {
+        for (let x = 0; x < s; x++) {
+            if ((x + y) % s >= s / 2) {
+                pctx.fillRect(x, y, 1, 1)
+            }
+        }
+    }
 
     return patternCanvas
 }
