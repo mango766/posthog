@@ -1,13 +1,15 @@
 import type { z } from 'zod'
 
-import { SURVEY_STATS_RESOURCE_URI } from '@/resources/ui-apps-constants'
+import { withUiApp } from '@/resources/ui-apps'
 import { SurveyStatsSchema } from '@/schema/tool-inputs'
+import { withPostHogUrl, type WithPostHogUrl } from '@/tools/tool-utils'
 import type { Context, ToolBase } from '@/tools/types'
 
 const schema = SurveyStatsSchema
 type Params = z.infer<typeof schema>
+type Result = WithPostHogUrl
 
-export const statsHandler: ToolBase<typeof schema, unknown>['handler'] = async (context: Context, params: Params) => {
+export const statsHandler: ToolBase<typeof schema, Result>['handler'] = async (context: Context, params: Params) => {
     const projectId = await context.stateManager.getProjectId()
 
     const result = await context.api.surveys({ projectId }).stats({
@@ -20,21 +22,12 @@ export const statsHandler: ToolBase<typeof schema, unknown>['handler'] = async (
         throw new Error(`Failed to get survey stats: ${result.error.message}`)
     }
 
-    return {
-        ...result.data,
-        _posthogUrl: `${context.api.getProjectBaseUrl(projectId)}/surveys/${params.survey_id}`,
-    }
+    return withPostHogUrl(result.data, `${context.api.getProjectBaseUrl(projectId)}/surveys/${params.survey_id}`)
 }
 
-const tool = (): ToolBase<typeof schema> => ({
-    name: 'survey-stats',
-    schema,
-    handler: statsHandler,
-    _meta: {
-        ui: {
-            resourceUri: SURVEY_STATS_RESOURCE_URI,
-        },
-    },
-})
-
-export default tool
+export default (): ToolBase<typeof schema, Result> =>
+    withUiApp('survey-stats', {
+        name: 'survey-stats',
+        schema,
+        handler: statsHandler,
+    })

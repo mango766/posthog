@@ -1,8 +1,9 @@
 import type { z } from 'zod'
 
-import { SURVEY_LIST_RESOURCE_URI } from '@/resources/ui-apps-constants'
+import { withUiApp } from '@/resources/ui-apps'
 import { SurveyGetAllSchema } from '@/schema/tool-inputs'
 import { formatSurveys, type FormattedSurvey } from '@/tools/surveys/utils/survey-utils'
+import { withPostHogUrl } from '@/tools/tool-utils'
 import type { Context, ToolBase } from '@/tools/types'
 
 const schema = SurveyGetAllSchema
@@ -21,21 +22,12 @@ export const getAllHandler: ToolBase<typeof schema, Result>['handler'] = async (
 
     const formattedSurveys = formatSurveys(surveysResult.data, context, projectId)
 
-    return {
-        results: formattedSurveys,
-        _posthogUrl: `${context.api.getProjectBaseUrl(projectId)}/surveys`,
-    }
+    return withPostHogUrl({ results: formattedSurveys }, `${context.api.getProjectBaseUrl(projectId)}/surveys`)
 }
 
-const tool = (): ToolBase<typeof schema, Result> => ({
-    name: 'surveys-get-all',
-    schema,
-    handler: getAllHandler,
-    _meta: {
-        ui: {
-            resourceUri: SURVEY_LIST_RESOURCE_URI,
-        },
-    },
-})
-
-export default tool
+export default (): ToolBase<typeof schema, Result> =>
+    withUiApp('survey-list', {
+        name: 'surveys-get-all',
+        schema,
+        handler: getAllHandler,
+    })

@@ -7,6 +7,13 @@
 category: Cohorts
 feature: cohorts
 url_prefix: /cohorts
+ui_apps:
+    cohort:
+        type: detail
+        view_prop: cohort
+    cohort-list:
+        type: list
+        detail_tool: cohorts-retrieve
 tools:
     cohorts-list:
         operation: cohorts_list
@@ -24,7 +31,7 @@ tools:
             List all cohorts in the project. Returns both static cohorts (manually defined user lists) and dynamic
             cohorts (automatically updated based on property filters).
         mcp_version: 1
-        ui_resource_uri: ui://posthog/cohort-list.html
+        ui_app: cohort-list
     cohorts-create:
         operation: cohorts_create
         enabled: true
@@ -54,7 +61,7 @@ tools:
             - count
             - experiment_set
         mcp_version: 1
-        ui_resource_uri: ui://posthog/cohort.html
+        ui_app: cohort
     cohorts-retrieve:
         operation: cohorts_retrieve
         enabled: true
@@ -70,7 +77,7 @@ tools:
             Get a specific cohort by ID. Returns the cohort name, description, filters (for dynamic cohorts), count of
             matching users, and calculation status.
         mcp_version: 1
-        ui_resource_uri: ui://posthog/cohort.html
+        ui_app: cohort
     cohorts-update:
         operation: cohorts_update
         enabled: false
@@ -101,7 +108,7 @@ tools:
             - count
             - experiment_set
         mcp_version: 1
-        ui_resource_uri: ui://posthog/cohort.html
+        ui_app: cohort
     cohorts-destroy:
         operation: cohorts_destroy
         enabled: false

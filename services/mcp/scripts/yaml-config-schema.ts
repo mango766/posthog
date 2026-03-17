@@ -39,7 +39,8 @@ export const ToolConfigSchema = z
             )
             .optional(),
         mcp_version: z.number().int().positive().optional(),
-        ui_resource_uri: z.string().optional(),
+        /** References a key in ui_apps. */
+        ui_app: z.string().optional(),
         /**
          * When true, the tool issues PATCH { deleted: true } instead of DELETE.
          * Use for endpoints backed by ForbidDestroyModel where soft-delete is the
@@ -66,12 +67,87 @@ export type EnabledToolConfig = Omit<ToolConfig, 'scopes' | 'annotations'> & {
     annotations: { readOnly: boolean; destructive: boolean; idempotent: boolean }
 }
 
+// --- UI App schemas ---
+// Most fields are optional — the generator derives them from the key + product dir.
+
+const DetailUiAppSchema = z
+    .object({
+        type: z.literal('detail'),
+        view_prop: z.string(),
+        // All below are optional — derived by convention when omitted
+        app_name: z.string().optional(),
+        description: z.string().optional(),
+        component_import: z.string().optional(),
+        data_type: z.string().optional(),
+        view_component: z.string().optional(),
+    })
+    .strict()
+
+const ListUiAppSchema = z
+    .object({
+        type: z.literal('list'),
+        detail_tool: z.string(),
+        // Optional with sensible defaults
+        detail_args: z.string().optional(),
+        item_name_field: z.string().optional(),
+        click_prop: z.string().optional(),
+        entity_label: z.string().optional(),
+        // All below are optional — derived by convention when omitted
+        app_name: z.string().optional(),
+        description: z.string().optional(),
+        component_import: z.string().optional(),
+        list_data_type: z.string().optional(),
+        item_data_type: z.string().optional(),
+        view_component: z.string().optional(),
+    })
+    .strict()
+
+const CustomUiAppSchema = z
+    .object({
+        type: z.literal('custom'),
+        app_name: z.string(),
+        description: z.string(),
+    })
+    .strict()
+
+export const UiAppConfigSchema = z.discriminatedUnion('type', [DetailUiAppSchema, ListUiAppSchema, CustomUiAppSchema])
+
+export type UiAppConfig = z.infer<typeof UiAppConfigSchema>
+
+/** Detail config with all fields resolved (after convention defaults are applied). */
+export interface ResolvedDetailUiApp {
+    type: 'detail'
+    view_prop: string
+    app_name: string
+    description: string
+    component_import: string
+    data_type: string
+    view_component: string
+}
+
+/** List config with all fields resolved (after convention defaults are applied). */
+export interface ResolvedListUiApp {
+    type: 'list'
+    detail_tool: string
+    detail_args: string
+    item_name_field: string
+    click_prop: string
+    entity_label: string
+    app_name: string
+    description: string
+    component_import: string
+    list_data_type: string
+    item_data_type: string
+    view_component: string
+}
+
 export const CategoryConfigSchema = z
     .object({
         category: z.string(),
         feature: z.string(),
         url_prefix: z.string(),
         tools: z.record(z.string(), ToolConfigSchema),
+        ui_apps: z.record(z.string(), UiAppConfigSchema).optional(),
     })
     .strict()
 
