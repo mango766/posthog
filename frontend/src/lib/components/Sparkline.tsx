@@ -100,6 +100,7 @@ export function Sparkline({
                     return {
                         name: timeseries.name || defaultName,
                         color: timeseries.color || defaultColor,
+                        barColors: timeseries.barColors,
                         values: timeseries.values || [],
                     }
                 }
