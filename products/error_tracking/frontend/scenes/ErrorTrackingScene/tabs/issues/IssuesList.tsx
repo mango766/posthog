@@ -1,5 +1,4 @@
 import { BindLogic, useValues } from 'kea'
-import { useMemo } from 'react'
 
 import { Tooltip } from '@posthog/lemon-ui'
 
@@ -22,9 +21,9 @@ import { IssueQueryOptions } from 'products/error_tracking/frontend/components/I
 import { OccurrenceSparkline } from 'products/error_tracking/frontend/components/OccurrenceSparkline'
 import { IssueListTitleColumn, IssueListTitleHeader } from 'products/error_tracking/frontend/components/TableColumns'
 import { useSparklineData } from 'products/error_tracking/frontend/hooks/use-sparkline-data'
+import { useSpikeEvents } from 'products/error_tracking/frontend/hooks/use-sparkline-events'
 import { bulkSelectLogic } from 'products/error_tracking/frontend/logics/bulkSelectLogic'
 import { issuesDataNodeLogic } from 'products/error_tracking/frontend/logics/issuesDataNodeLogic'
-import { recentlySpikingLogic } from 'products/error_tracking/frontend/logics/recentlySpikingLogic'
 import { errorTrackingSceneLogic } from 'products/error_tracking/frontend/scenes/ErrorTrackingScene/errorTrackingSceneLogic'
 import { ERROR_TRACKING_LISTING_RESOLUTION } from 'products/error_tracking/frontend/utils'
 
@@ -34,14 +33,10 @@ const VolumeColumn: QueryContextColumnComponent = (props) => {
         throw new Error('No aggregations found')
     }
     const data = useSparklineData(record.aggregations, ERROR_TRACKING_LISTING_RESOLUTION)
-    const { recentSpikes } = useValues(recentlySpikingLogic)
-    const issueSpikeEvents = useMemo(
-        () => recentSpikes.filter((s) => s.issue_id === record.id),
-        [recentSpikes, record.id]
-    )
+    const spikeEvents = useSpikeEvents(record.id)
     return (
         <div className="flex justify-end">
-            <OccurrenceSparkline className="h-8" data={data} displayXAxis={false} spikeEvents={issueSpikeEvents} />
+            <OccurrenceSparkline className="h-8" data={data} displayXAxis={false} spikeEvents={spikeEvents} />
         </div>
     )
 }
