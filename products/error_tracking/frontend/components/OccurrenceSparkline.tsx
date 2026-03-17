@@ -1,6 +1,7 @@
 import { useValues } from 'kea'
 import { useCallback, useMemo } from 'react'
 
+import { getColorVar } from 'lib/colors'
 import { ErrorTrackingSpikeEvent } from 'lib/components/Errors/types'
 import { AnyScaleOptions, Sparkline } from 'lib/components/Sparkline'
 import { dayjs } from 'lib/dayjs'
@@ -9,6 +10,45 @@ import { themeLogic } from '~/layout/navigation-3000/themeLogic'
 
 import { useDefaultSparklineColorVars, useSparklineOptions } from '../hooks/use-sparkline-options'
 import { SparklineData, SparklineOptions } from './SparklineChart/SparklineChart'
+
+let cachedSpikePattern: CanvasPattern | null = null
+
+function getSpikePattern(): CanvasPattern | null {
+    if (cachedSpikePattern) {
+        return cachedSpikePattern
+    }
+
+    const size = 6
+    const patternCanvas = document.createElement('canvas')
+    patternCanvas.width = size
+    patternCanvas.height = size
+    const pctx = patternCanvas.getContext('2d')
+    if (!pctx) {
+        return null
+    }
+
+    const spikeColor = getColorVar('brand-yellow')
+    pctx.fillStyle = spikeColor
+    pctx.fillRect(0, 0, size, size)
+
+    pctx.strokeStyle = 'rgba(255,255,255,0.35)'
+    pctx.lineWidth = 2
+    pctx.beginPath()
+    pctx.moveTo(-1, 1)
+    pctx.lineTo(1, -1)
+    pctx.moveTo(0, size)
+    pctx.lineTo(size, 0)
+    pctx.moveTo(size - 1, size + 1)
+    pctx.lineTo(size + 1, size - 1)
+    pctx.stroke()
+
+    const resolveCanvas = document.createElement('canvas')
+    resolveCanvas.width = 1
+    resolveCanvas.height = 1
+    const resolveCtx = resolveCanvas.getContext('2d')
+    cachedSpikePattern = resolveCtx?.createPattern(patternCanvas, 'repeat') ?? null
+    return cachedSpikePattern
+}
 
 export function OccurrenceSparkline({
     data,
@@ -27,6 +67,7 @@ export function OccurrenceSparkline({
         backgroundColor: colorVars[0],
         hoverBackgroundColor: colorVars[1],
     })
+
     const [occurrences, labels, labelRenderer] = useMemo(() => {
         return [
             wrapDataWithColor(data, options, spikeEvents),
@@ -81,8 +122,6 @@ export function useSparklineColors(): { color: string; hoverColor: string } {
     }, [isDarkModeOn])
 }
 
-const SPIKE_COLOR_VAR = 'brand-yellow'
-
 function wrapDataWithColor(
     data: SparklineData,
     options: SparklineOptions,
@@ -98,12 +137,15 @@ function wrapDataWithColor(
     if (spikeEvents.length > 0 && data.length >= 2) {
         const binSizeMs = data[1].date.getTime() - data[0].date.getTime()
         const spikeTimestamps = spikeEvents.map((s) => new Date(s.detected_at).getTime())
+        const spikePattern = getSpikePattern()
 
-        series.barColors = data.map((datum) => {
-            const datumTime = datum.date.getTime()
-            const hasSpikeInBin = spikeTimestamps.some((st) => st >= datumTime && st < datumTime + binSizeMs)
-            return hasSpikeInBin ? SPIKE_COLOR_VAR : options.backgroundColor
-        })
+        if (spikePattern) {
+            series.barColors = data.map((datum) => {
+                const datumTime = datum.date.getTime()
+                const hasSpikeInBin = spikeTimestamps.some((st) => st >= datumTime && st < datumTime + binSizeMs)
+                return hasSpikeInBin ? spikePattern : options.backgroundColor
+            })
+        }
     }
 
     return [series]

@@ -9,6 +9,7 @@ export type SparklineDatum = {
     value: number
     label?: string
     color?: string
+    animated?: boolean
 }
 
 export type SparklineEvent<T> = {
@@ -72,6 +73,12 @@ export function SparklineChart({ data, events = [], options, className }: Sparkl
 
             const xAxis = d3.axisBottom(xScale).tickValues(xTicks).tickSize(0).tickPadding(5)
 
+            // Add animated stripe pattern for spike bars
+            const hasAnimatedBars = occurrences.some((d) => d.animated && d.color)
+            if (hasAnimatedBars) {
+                buildSpikePattern(svg, occurrences.find((d) => d.animated)?.color || 'var(--brand-yellow)')
+            }
+
             svg.selectAll('g.datum')
                 .data(occurrences)
                 .enter()
@@ -125,7 +132,7 @@ function buildBarGroup(
             const current = d3.select(this)
             const datum = d as SparklineDatum
             options.onDatumMouseLeave?.(datum)
-            current.select('.bar').style('fill', datum.color || options.backgroundColor)
+            current.select('.bar').style('fill', spikeBarFill(datum, options.backgroundColor))
         })
 
     group
@@ -135,7 +142,7 @@ function buildBarGroup(
         .attr('y', (d) => yScale(d.value) + options.borderRadius)
         .attr('width', bandwidth * 0.9)
         .attr('height', (d) => (d && d.value > 0 ? contentHeight - yScale(d.value) : 0))
-        .style('fill', (d) => d.color || options.backgroundColor)
+        .style('fill', (d) => spikeBarFill(d, options.backgroundColor))
         .style('clip-path', `inset(0 0 ${options.borderRadius + 1}px 0)`) // Offset by 1px to avoid overlapping on x axis
         .attr('rx', options.borderRadius)
         .attr('ry', options.borderRadius)
@@ -297,4 +304,41 @@ function forceBoundaries(nodes: any, minX: number, maxX: number) {
             }
         })
     }
+}
+
+const SPIKE_PATTERN_ID = 'spike-stripe-pattern'
+
+function spikeBarFill(d: SparklineDatum, defaultColor: string): string {
+    if (d.animated && d.color) {
+        return `url(#${SPIKE_PATTERN_ID})`
+    }
+    return d.color || defaultColor
+}
+
+function buildSpikePattern(svg: d3.Selection<SVGSVGElement, unknown, null, undefined>, color: string): void {
+    const size = 6
+    const defs = svg.append('defs')
+    const pattern = defs
+        .append('pattern')
+        .attr('id', SPIKE_PATTERN_ID)
+        .attr('patternUnits', 'userSpaceOnUse')
+        .attr('width', size)
+        .attr('height', size)
+
+    pattern.append('rect').attr('width', size).attr('height', size).attr('fill', color)
+
+    pattern
+        .append('path')
+        .attr('d', `M-1,1 l2,-2 M0,${size} l${size},-${size} M${size - 1},${size + 1} l2,-2`)
+        .attr('stroke', 'rgba(255,255,255,0.35)')
+        .attr('stroke-width', 2)
+
+    pattern
+        .append('animateTransform')
+        .attr('attributeName', 'patternTransform')
+        .attr('type', 'translate')
+        .attr('from', '0 0')
+        .attr('to', `0 -${size}`)
+        .attr('dur', '0.6s')
+        .attr('repeatCount', 'indefinite')
 }

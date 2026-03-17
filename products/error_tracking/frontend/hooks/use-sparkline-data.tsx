@@ -82,6 +82,6 @@ export function applySpikeColors(data: SparklineData, spikeEvents: ErrorTracking
     return data.map((datum) => {
         const datumTime = datum.date.getTime()
         const hasSpikeInBin = spikeTimestamps.some((st) => st >= datumTime && st < datumTime + binSizeMs)
-        return hasSpikeInBin ? { ...datum, color: SPIKE_COLOR } : datum
+        return hasSpikeInBin ? { ...datum, color: SPIKE_COLOR, animated: true } : datum
     })
 }

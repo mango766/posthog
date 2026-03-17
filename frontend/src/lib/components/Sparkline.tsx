@@ -18,8 +18,8 @@ export interface SparklineTimeSeries {
     values: number[]
     /** Check vars.scss for available colors. @default 'muted' */
     color?: string
-    /** Per-bar color overrides. When provided, takes precedence over `color`. */
-    barColors?: string[]
+    /** Per-bar color overrides. Each entry is a CSS var name or a CanvasPattern. */
+    barColors?: (string | CanvasPattern)[]
     hoverColor?: string
 }
 
@@ -56,6 +56,8 @@ interface SparklineProps {
     hideZerosInTooltip?: boolean
     /** Sort tooltip items by count (descending). @default false */
     sortTooltipByCount?: boolean
+    /** Ref to access the Chart.js instance for direct updates (e.g. animation). */
+    chartInstanceRef?: React.MutableRefObject<Chart | null>
 }
 
 export function Sparkline({
@@ -186,7 +188,7 @@ export function Sparkline({
                         const seriesColor = getColorVar(timeseries.color || 'muted')
                         const hoverColor = getColorVar(timeseries.hoverColor || timeseries.color || 'muted')
                         const bgColor = timeseries.barColors
-                            ? timeseries.barColors.map((c) => getColorVar(c))
+                            ? timeseries.barColors.map((c) => (typeof c === 'string' ? getColorVar(c) : c))
                             : seriesColor
                         return {
                             label: timeseries.name,
