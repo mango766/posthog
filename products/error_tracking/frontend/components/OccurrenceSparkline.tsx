@@ -105,7 +105,7 @@ export function OccurrenceSparkline({
 
         let animationFrameId: number
         let offset = 0
-        const speed = STRIPE_SIZE / 100
+        const speed = STRIPE_SIZE / 140
 
         const animate = (): void => {
             offset = (offset + speed) % STRIPE_SIZE
