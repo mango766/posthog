@@ -52,10 +52,17 @@ export function RecentSpikes(): JSX.Element {
         {
             title: (
                 <SortingHeader sortOrder={order} setSortOrder={setOrder} columnKey="current_bucket_value">
-                    Actual
+                    Multiplier
                 </SortingHeader>
             ),
             dataIndex: 'current_bucket_value',
+            render: (_, record) => {
+                const multiplier =
+                    record.computed_baseline > 0
+                        ? Math.round(record.current_bucket_value / record.computed_baseline)
+                        : record.current_bucket_value
+                return <span>{multiplier}x</span>
+            },
         },
     ]
 

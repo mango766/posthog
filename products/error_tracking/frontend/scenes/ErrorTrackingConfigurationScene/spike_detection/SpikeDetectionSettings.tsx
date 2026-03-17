@@ -1,4 +1,4 @@
-import { useValues } from 'kea'
+import { useActions, useValues } from 'kea'
 import { Form } from 'kea-forms'
 
 import { LemonBanner } from '@posthog/lemon-ui'
@@ -7,12 +7,22 @@ import { LemonButton } from 'lib/lemon-ui/LemonButton'
 import { LemonField } from 'lib/lemon-ui/LemonField'
 import { LemonInput } from 'lib/lemon-ui/LemonInput'
 import { LemonSkeleton } from 'lib/lemon-ui/LemonSkeleton'
+import { settingsLogic } from 'scenes/settings/settingsLogic'
 
+import { ERROR_TRACKING_LOGIC_KEY } from '../../../utils'
 import { RecentSpikes } from './RecentSpikes'
 import { spikeDetectionConfigLogic } from './spikeDetectionConfigLogic'
 
 export function SpikeDetectionSettings(): JSX.Element {
-    const { configLoading, configFormChanged, isConfigFormSubmitting } = useValues(spikeDetectionConfigLogic)
+    const { configLoading, configFormChanged, isConfigFormSubmitting, hasSpikeAlerts } =
+        useValues(spikeDetectionConfigLogic)
+    const { selectSetting } = useActions(
+        settingsLogic({
+            logicKey: ERROR_TRACKING_LOGIC_KEY,
+            sectionId: 'environment-error-tracking',
+            settingId: 'error-tracking-alerting',
+        })
+    )
 
     if (configLoading) {
         return (
@@ -32,6 +42,21 @@ export function SpikeDetectionSettings(): JSX.Element {
                         as we iterate. We'd love your feedback!
                     </p>
                 </LemonBanner>
+
+                {!hasSpikeAlerts && (
+                    <LemonBanner
+                        type="warning"
+                        action={{
+                            children: 'Configure alerts',
+                            onClick: () => selectSetting('error-tracking-alerting'),
+                        }}
+                    >
+                        <p>
+                            You don't have any alerts configured for spike events. Set up notifications to get alerted
+                            when issues spike.
+                        </p>
+                    </LemonBanner>
+                )}
 
                 <p className="text-muted-foreground">
                     Configure spike detection settings for error tracking alerts. When an issue receives significantly
@@ -83,7 +108,7 @@ export function SpikeDetectionSettings(): JSX.Element {
             </Form>
 
             <div>
-                <h3 className="font-semibold mb-2">Recent spikes</h3>
+                <h3 className="font-semibold mb-2">Recent spike events</h3>
                 <RecentSpikes />
             </div>
         </div>
