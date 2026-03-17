@@ -1,4 +1,4 @@
-import { actions, defaults, kea, listeners, path, reducers, selectors } from 'kea'
+import { actions, afterMount, defaults, kea, listeners, path, reducers, selectors } from 'kea'
 import { loaders } from 'kea-loaders'
 
 import api, { CountedPaginatedResponse } from 'lib/api'
@@ -85,4 +85,8 @@ export const recentSpikesLogic = kea<recentSpikesLogicType>([
             }),
         ],
     })),
+
+    afterMount(({ actions }) => {
+        actions.loadRecentSpikes()
+    }),
 ])

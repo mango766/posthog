@@ -1,27 +1,30 @@
-import { useActions, useValues } from 'kea'
-import { useEffect } from 'react'
-import { P, match } from 'ts-pattern'
+import { useValues } from 'kea'
 
-import { IconSort } from '@posthog/icons'
 import { LemonTable, LemonTableColumns, Link } from '@posthog/lemon-ui'
 
 import { ErrorTrackingSpikeEvent } from 'lib/components/Errors/types'
 import { TZLabel } from 'lib/components/TZLabel'
-import { IconArrowDown, IconArrowUp } from 'lib/lemon-ui/icons'
+import { Sorting } from 'lib/lemon-ui/LemonTable/sorting'
 import { urls } from 'scenes/urls'
 
 import { SpikeEventOrder, recentSpikesLogic } from './recentSpikesLogic'
 
+function orderToSorting(order: SpikeEventOrder): Sorting {
+    if (order.startsWith('-')) {
+        return { columnKey: order.slice(1), order: -1 }
+    }
+    return { columnKey: order, order: 1 }
+}
+
+function sortingToOrder(sorting: Sorting): SpikeEventOrder {
+    const prefix = sorting.order === -1 ? '-' : ''
+    return `${prefix}${sorting.columnKey}` as SpikeEventOrder
+}
+
 export function RecentSpikes(): JSX.Element {
-    const { loadRecentSpikes } = useActions(recentSpikesLogic)
-
-    useEffect(() => {
-        loadRecentSpikes()
-    }, [loadRecentSpikes])
-
     // @ts-expect-error: typegen typing issue
     const { recentSpikes, spikesResponseLoading, pagination, order } = useValues(recentSpikesLogic)
-    const { setOrder } = useActions(recentSpikesLogic)
+    const { setOrder } = recentSpikesLogic.actions
 
     const columns: LemonTableColumns<ErrorTrackingSpikeEvent> = [
         {
@@ -32,30 +35,21 @@ export function RecentSpikes(): JSX.Element {
             ),
         },
         {
-            title: (
-                <SortingHeader sortOrder={order} setSortOrder={setOrder} columnKey="detected_at">
-                    Detected at
-                </SortingHeader>
-            ),
+            title: 'Detected at',
             dataIndex: 'detected_at',
+            sorter: true,
             render: (_, record) => <TZLabel time={record.detected_at} />,
         },
         {
-            title: (
-                <SortingHeader sortOrder={order} setSortOrder={setOrder} columnKey="computed_baseline">
-                    Baseline
-                </SortingHeader>
-            ),
+            title: 'Baseline',
             dataIndex: 'computed_baseline',
+            sorter: true,
             render: (_, record) => <span>{Math.round(record.computed_baseline)}</span>,
         },
         {
-            title: (
-                <SortingHeader sortOrder={order} setSortOrder={setOrder} columnKey="current_bucket_value">
-                    Multiplier
-                </SortingHeader>
-            ),
+            title: 'Multiplier',
             dataIndex: 'current_bucket_value',
+            sorter: true,
             render: (_, record) => {
                 const multiplier =
                     record.computed_baseline > 0
@@ -72,41 +66,15 @@ export function RecentSpikes(): JSX.Element {
             columns={columns}
             loading={spikesResponseLoading}
             pagination={pagination}
+            sorting={orderToSorting(order)}
+            onSort={(newSorting) => {
+                if (newSorting) {
+                    setOrder(sortingToOrder(newSorting))
+                }
+            }}
+            noSortingCancellation
+            useURLForSorting={false}
             emptyState={!spikesResponseLoading ? 'No spike events detected yet.' : undefined}
         />
-    )
-}
-
-function SortingHeader({
-    columnKey,
-    sortOrder,
-    setSortOrder,
-    children,
-}: {
-    columnKey: SpikeEventOrder
-    sortOrder: SpikeEventOrder
-    setSortOrder: (order: SpikeEventOrder) => void
-    children: React.ReactNode
-}): JSX.Element {
-    const isUsed = sortOrder.includes(columnKey)
-    const order = sortOrder.startsWith('-') ? 'desc' : 'asc'
-    const onToggle = (): void => {
-        if (isUsed) {
-            setSortOrder((order === 'asc' ? `-${columnKey}` : columnKey) as SpikeEventOrder)
-        } else {
-            setSortOrder(columnKey)
-        }
-    }
-    return (
-        <div className="flex items-center gap-2 cursor-pointer" onClick={onToggle}>
-            <div className="font-semibold">{children}</div>
-            {
-                match([isUsed, order])
-                    .with([true, 'asc'], () => <IconArrowUp />)
-                    .with([true, 'desc'], () => <IconArrowDown />)
-                    .with([false, P.any], () => <IconSort />)
-                    .otherwise(() => null) as JSX.Element
-            }
-        </div>
     )
 }

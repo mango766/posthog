@@ -3747,10 +3747,10 @@ const api = {
             if (issueId) {
                 query.issue_id = issueId
             }
-            if (params?.limit) {
+            if (params?.limit !== undefined) {
                 query.limit = params.limit
             }
-            if (params?.offset) {
+            if (params?.offset !== undefined) {
                 query.offset = params.offset
             }
             if (params?.orderBy) {
