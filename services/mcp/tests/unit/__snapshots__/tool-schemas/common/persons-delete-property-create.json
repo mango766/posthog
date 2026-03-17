@@ -1,0 +1,15 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+        "$unset": {
+            "description": "The property key to remove from this person.",
+            "type": "string"
+        },
+        "id": {
+            "description": "A unique integer value identifying this person.",
+            "type": "number"
+        }
+    },
+    "required": ["id", "$unset"],
+    "type": "object"
+}

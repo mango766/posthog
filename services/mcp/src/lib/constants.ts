@@ -98,6 +98,8 @@ export const OAUTH_SCOPES_SUPPORTED = [
     'logs:read',
     'organization:read',
     'organization:write',
+    'person:read',
+    'person:write',
     'project:read',
     'property_definition:read',
     'query:read',
