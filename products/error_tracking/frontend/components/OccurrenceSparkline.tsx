@@ -9,7 +9,7 @@ import { dayjs } from 'lib/dayjs'
 import { useDefaultSparklineColorVars, useSparklineOptions } from '../hooks/use-sparkline-options'
 import { SparklineData, SparklineOptions } from './SparklineChart/SparklineChart'
 
-const STRIPE_SIZE = 12
+const STRIPE_SIZE = 10
 
 function createSpikePatternCanvas(): HTMLCanvasElement {
     const s = STRIPE_SIZE
@@ -115,7 +115,7 @@ export function OccurrenceSparkline({
 
         let frameId: number
         let offset = 0
-        const speed = STRIPE_SIZE / 140
+        const speed = STRIPE_SIZE / 110
 
         const animate = (): void => {
             offset = (offset + speed) % STRIPE_SIZE
