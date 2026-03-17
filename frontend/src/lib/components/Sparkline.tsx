@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { Popover } from '@posthog/lemon-ui'
 
@@ -235,10 +235,12 @@ export function Sparkline({
         deps: [labels, adjustedData, withXScale, withYScale, renderLabel, data, maximumIndicator, type],
     })
 
-    // Expose the Chart.js instance to the parent for direct updates (e.g. animation)
-    if (chartInstanceRef) {
-        chartInstanceRef.current = chartRef.current
-    }
+    // Sync after useChart's effect creates the instance
+    useEffect(() => {
+        if (chartInstanceRef) {
+            chartInstanceRef.current = chartRef.current
+        }
+    })
 
     const dataPointCount = adjustedData[0]?.values?.length || 0
     const finalClassName = clsx(
