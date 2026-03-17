@@ -1,59 +1,105 @@
-import { useValues } from 'kea'
+import { useActions, useValues } from 'kea'
+import { useEffect } from 'react'
+import { P, match } from 'ts-pattern'
 
-import { LemonSkeleton, LemonTable, Link } from '@posthog/lemon-ui'
+import { IconSort } from '@posthog/icons'
+import { LemonTable, LemonTableColumns, Link } from '@posthog/lemon-ui'
 
 import { ErrorTrackingSpikeEvent } from 'lib/components/Errors/types'
 import { TZLabel } from 'lib/components/TZLabel'
+import { IconArrowDown, IconArrowUp } from 'lib/lemon-ui/icons'
 import { urls } from 'scenes/urls'
 
-import { recentSpikesLogic } from './recentSpikesLogic'
+import { SpikeEventOrder, recentSpikesLogic } from './recentSpikesLogic'
 
 export function RecentSpikes(): JSX.Element {
-    const { recentSpikes, recentSpikesLoading } = useValues(recentSpikesLogic)
+    const { loadRecentSpikes } = useActions(recentSpikesLogic)
 
-    if (recentSpikesLoading) {
-        return (
-            <div className="space-y-2">
-                <LemonSkeleton className="w-full h-10" />
-                <LemonSkeleton className="w-full h-10" />
-                <LemonSkeleton className="w-full h-10" />
-            </div>
-        )
-    }
+    useEffect(() => {
+        loadRecentSpikes()
+    }, [loadRecentSpikes])
 
-    if (recentSpikes.length === 0) {
-        return <p className="text-muted-foreground italic">No spike events detected yet.</p>
-    }
+    // @ts-expect-error: typegen typing issue
+    const { recentSpikes, spikesResponseLoading, pagination, order } = useValues(recentSpikesLogic)
+    const { setOrder } = useActions(recentSpikesLogic)
+
+    const columns: LemonTableColumns<ErrorTrackingSpikeEvent> = [
+        {
+            title: 'Issue',
+            dataIndex: 'issue_name',
+            render: (_, record) => (
+                <Link to={urls.errorTrackingIssue(record.issue_id)}>{record.issue_name || 'Unknown issue'}</Link>
+            ),
+        },
+        {
+            title: (
+                <SortingHeader sortOrder={order} setSortOrder={setOrder} columnKey="detected_at">
+                    Detected at
+                </SortingHeader>
+            ),
+            dataIndex: 'detected_at',
+            render: (_, record) => <TZLabel time={record.detected_at} />,
+        },
+        {
+            title: (
+                <SortingHeader sortOrder={order} setSortOrder={setOrder} columnKey="computed_baseline">
+                    Baseline
+                </SortingHeader>
+            ),
+            dataIndex: 'computed_baseline',
+            render: (_, record) => <span>{Math.round(record.computed_baseline)}</span>,
+        },
+        {
+            title: (
+                <SortingHeader sortOrder={order} setSortOrder={setOrder} columnKey="current_bucket_value">
+                    Actual
+                </SortingHeader>
+            ),
+            dataIndex: 'current_bucket_value',
+        },
+    ]
 
     return (
         <LemonTable<ErrorTrackingSpikeEvent>
             dataSource={recentSpikes}
-            columns={[
-                {
-                    title: 'Issue',
-                    dataIndex: 'issue_name',
-                    render: (_, record) => (
-                        <Link to={urls.errorTrackingIssue(record.issue_id)}>
-                            {record.issue_name || 'Unknown issue'}
-                        </Link>
-                    ),
-                },
-                {
-                    title: 'Detected at',
-                    dataIndex: 'detected_at',
-                    render: (_, record) => <TZLabel time={record.detected_at} />,
-                },
-                {
-                    title: 'Baseline',
-                    dataIndex: 'computed_baseline',
-                    render: (_, record) => <span>{Math.round(record.computed_baseline)}</span>,
-                },
-                {
-                    title: 'Actual',
-                    dataIndex: 'current_bucket_value',
-                },
-            ]}
-            emptyState="No spike events"
+            columns={columns}
+            loading={spikesResponseLoading}
+            pagination={pagination}
+            emptyState={!spikesResponseLoading ? 'No spike events detected yet.' : undefined}
         />
+    )
+}
+
+function SortingHeader({
+    columnKey,
+    sortOrder,
+    setSortOrder,
+    children,
+}: {
+    columnKey: SpikeEventOrder
+    sortOrder: SpikeEventOrder
+    setSortOrder: (order: SpikeEventOrder) => void
+    children: React.ReactNode
+}): JSX.Element {
+    const isUsed = sortOrder.includes(columnKey)
+    const order = sortOrder.startsWith('-') ? 'desc' : 'asc'
+    const onToggle = (): void => {
+        if (isUsed) {
+            setSortOrder((order === 'asc' ? `-${columnKey}` : columnKey) as SpikeEventOrder)
+        } else {
+            setSortOrder(columnKey)
+        }
+    }
+    return (
+        <div className="flex items-center gap-2 cursor-pointer" onClick={onToggle}>
+            <div className="font-semibold">{children}</div>
+            {
+                match([isUsed, order])
+                    .with([true, 'asc'], () => <IconArrowUp />)
+                    .with([true, 'desc'], () => <IconArrowDown />)
+                    .with([false, P.any], () => <IconSort />)
+                    .otherwise(() => null) as JSX.Element
+            }
+        </div>
     )
 }

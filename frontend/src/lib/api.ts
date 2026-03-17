@@ -3739,10 +3739,26 @@ const api = {
                 .update({ data })
         },
 
-        async getSpikeEvents(issueId?: string): Promise<PaginatedResponse<ErrorTrackingSpikeEvent>> {
-            let request = new ApiRequest().errorTrackingSpikeEvents()
+        async getSpikeEvents(
+            issueId?: string,
+            params?: { limit?: number; offset?: number; orderBy?: string }
+        ): Promise<CountedPaginatedResponse<ErrorTrackingSpikeEvent>> {
+            const query: Record<string, string | number> = {}
             if (issueId) {
-                request = request.withQueryString({ issue_id: issueId })
+                query.issue_id = issueId
+            }
+            if (params?.limit) {
+                query.limit = params.limit
+            }
+            if (params?.offset) {
+                query.offset = params.offset
+            }
+            if (params?.orderBy) {
+                query.order_by = params.orderBy
+            }
+            let request = new ApiRequest().errorTrackingSpikeEvents()
+            if (Object.keys(query).length > 0) {
+                request = request.withQueryString(query)
             }
             return await request.get()
         },
