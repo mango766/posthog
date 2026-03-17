@@ -74,6 +74,7 @@ def backfill_experiment_saved_metric_uuids(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
+    atomic = False
     dependencies = [
         ("posthog", "1050_rename_slack_twig_to_posthog_code"),
     ]
