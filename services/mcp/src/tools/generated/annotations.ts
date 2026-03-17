@@ -10,13 +10,14 @@ import {
     AnnotationsPartialUpdateParams,
     AnnotationsRetrieveParams,
 } from '@/generated/annotations/api'
+import { withPostHogUrl, type WithPostHogUrl } from '@/tools/tool-utils'
 import type { Context, ToolBase, ZodObjectAny } from '@/tools/types'
 
 const AnnotationsListSchema = AnnotationsListQueryParams
 
 const annotationsList = (): ToolBase<
     typeof AnnotationsListSchema,
-    Schemas.PaginatedAnnotationList & { _posthogUrl: string }
+    WithPostHogUrl<Schemas.PaginatedAnnotationList>
 > => ({
     name: 'annotations-list',
     schema: AnnotationsListSchema,
@@ -31,10 +32,7 @@ const annotationsList = (): ToolBase<
                 search: params.search,
             },
         })
-        return {
-            ...(result as any),
-            _posthogUrl: `${context.api.getProjectBaseUrl(projectId)}/annotations`,
-        }
+        return withPostHogUrl(result as any, `${context.api.getProjectBaseUrl(projectId)}/annotations`)
     },
 })
 

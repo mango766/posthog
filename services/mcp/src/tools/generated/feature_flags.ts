@@ -10,6 +10,7 @@ import {
     FeatureFlagsPartialUpdateParams,
     FeatureFlagsRetrieve2Params,
 } from '@/generated/feature_flags/api'
+import { withPostHogUrl, type WithPostHogUrl } from '@/tools/tool-utils'
 import type { Context, ToolBase, ZodObjectAny } from '@/tools/types'
 
 const FeatureFlagGetAllSchema = FeatureFlagsListQueryParams
@@ -36,14 +37,15 @@ const featureFlagGetAll = (): ToolBase<typeof FeatureFlagGetAllSchema, unknown> 
             },
         })
         const items = (result as any).results ?? result
-        return {
-            ...(result as any),
-            results: (items as any[]).map((item: any) => ({
-                ...item,
-                _posthogUrl: `${context.api.getProjectBaseUrl(projectId)}/feature_flags/${item.id}`,
-            })),
-            _posthogUrl: `${context.api.getProjectBaseUrl(projectId)}/feature_flags`,
-        }
+        return withPostHogUrl(
+            {
+                ...(result as any),
+                results: (items as any[]).map((item: any) =>
+                    withPostHogUrl(item, `${context.api.getProjectBaseUrl(projectId)}/feature_flags/${item.id}`)
+                ),
+            },
+            `${context.api.getProjectBaseUrl(projectId)}/feature_flags`
+        )
     },
 })
 
@@ -51,7 +53,7 @@ const FeatureFlagGetDefinitionSchema = FeatureFlagsRetrieve2Params.omit({ projec
 
 const featureFlagGetDefinition = (): ToolBase<
     typeof FeatureFlagGetDefinitionSchema,
-    Schemas.FeatureFlag & { _posthogUrl: string }
+    WithPostHogUrl<Schemas.FeatureFlag>
 > => ({
     name: 'feature-flag-get-definition',
     schema: FeatureFlagGetDefinitionSchema,
@@ -61,19 +63,16 @@ const featureFlagGetDefinition = (): ToolBase<
             method: 'GET',
             path: `/api/projects/${projectId}/feature_flags/${params.id}/`,
         })
-        return {
-            ...(result as any),
-            _posthogUrl: `${context.api.getProjectBaseUrl(projectId)}/feature_flags/${(result as any).id}`,
-        }
+        return withPostHogUrl(
+            result as any,
+            `${context.api.getProjectBaseUrl(projectId)}/feature_flags/${(result as any).id}`
+        )
     },
 })
 
 const CreateFeatureFlagSchema = FeatureFlagsCreateBody
 
-const createFeatureFlag = (): ToolBase<
-    typeof CreateFeatureFlagSchema,
-    Schemas.FeatureFlag & { _posthogUrl: string }
-> => ({
+const createFeatureFlag = (): ToolBase<typeof CreateFeatureFlagSchema, WithPostHogUrl<Schemas.FeatureFlag>> => ({
     name: 'create-feature-flag',
     schema: CreateFeatureFlagSchema,
     handler: async (context: Context, params: z.infer<typeof CreateFeatureFlagSchema>) => {
@@ -102,10 +101,10 @@ const createFeatureFlag = (): ToolBase<
             path: `/api/projects/${projectId}/feature_flags/`,
             body,
         })
-        return {
-            ...(result as any),
-            _posthogUrl: `${context.api.getProjectBaseUrl(projectId)}/feature_flags/${(result as any).id}`,
-        }
+        return withPostHogUrl(
+            result as any,
+            `${context.api.getProjectBaseUrl(projectId)}/feature_flags/${(result as any).id}`
+        )
     },
 })
 
@@ -113,10 +112,7 @@ const UpdateFeatureFlagSchema = FeatureFlagsPartialUpdateParams.omit({ project_i
     FeatureFlagsPartialUpdateBody.shape
 )
 
-const updateFeatureFlag = (): ToolBase<
-    typeof UpdateFeatureFlagSchema,
-    Schemas.FeatureFlag & { _posthogUrl: string }
-> => ({
+const updateFeatureFlag = (): ToolBase<typeof UpdateFeatureFlagSchema, WithPostHogUrl<Schemas.FeatureFlag>> => ({
     name: 'update-feature-flag',
     schema: UpdateFeatureFlagSchema,
     handler: async (context: Context, params: z.infer<typeof UpdateFeatureFlagSchema>) => {
@@ -145,10 +141,10 @@ const updateFeatureFlag = (): ToolBase<
             path: `/api/projects/${projectId}/feature_flags/${params.id}/`,
             body,
         })
-        return {
-            ...(result as any),
-            _posthogUrl: `${context.api.getProjectBaseUrl(projectId)}/feature_flags/${(result as any).id}`,
-        }
+        return withPostHogUrl(
+            result as any,
+            `${context.api.getProjectBaseUrl(projectId)}/feature_flags/${(result as any).id}`
+        )
     },
 })
 

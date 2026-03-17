@@ -1,21 +1,55 @@
-# UI app definitions only — tools for surveys are handwritten in services/mcp/src/tools/surveys/
+# MCP tool definition — tool entries are scaffolded from the OpenAPI schema.
+# The tool list and operation IDs are kept in sync automatically:
+#   pnpm --filter=@posthog/mcp run scaffold-yaml -- --sync-all
+#
+# To enable a tool, set enabled: true and add required scopes + annotations.
+# All other fields (title, description, enrich_url, etc.) are yours to configure.
 category: Surveys
 feature: surveys
 url_prefix: /surveys
-ui_apps:
-    survey:
-        type: detail
-        view_prop: survey
-    survey-list:
-        type: list
-        detail_tool: survey-get
-        detail_args: '{ surveyId: item.id }'
-    survey-stats:
-        type: detail
-        view_prop: data
-    survey-global-stats:
-        type: detail
-        view_prop: data
-        data_type: SurveyStatsData
-        view_component: SurveyStatsView
-tools: {}
+tools:
+    surveys-list:
+        operation: surveys_list
+        enabled: false
+    surveys-create:
+        operation: surveys_create
+        enabled: false
+    surveys-retrieve:
+        operation: surveys_retrieve
+        enabled: false
+    surveys-update:
+        operation: surveys_update
+        enabled: false
+    surveys-partial-update:
+        operation: surveys_partial_update
+        enabled: false
+    surveys-destroy:
+        operation: surveys_destroy
+        enabled: false
+    surveys-activity-retrieve:
+        operation: surveys_activity_retrieve
+        enabled: false
+    surveys-archived-response-uuids-retrieve:
+        operation: surveys_archived_response_uuids_retrieve
+        enabled: false
+    surveys-duplicate-to-projects-create:
+        operation: surveys_duplicate_to_projects_create
+        enabled: false
+    surveys-responses-archive-create:
+        operation: surveys_responses_archive_create
+        enabled: false
+    surveys-responses-unarchive-create:
+        operation: surveys_responses_unarchive_create
+        enabled: false
+    surveys-stats-retrieve:
+        operation: surveys_stats_retrieve
+        enabled: false
+    surveys-summarize-responses-create:
+        operation: surveys_summarize_responses_create
+        enabled: false
+    surveys-summary-headline-create:
+        operation: surveys_summary_headline_create
+        enabled: false
+    surveys-responses-count-retrieve:
+        operation: surveys_responses_count_retrieve
+        enabled: false

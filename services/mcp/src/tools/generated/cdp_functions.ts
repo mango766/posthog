@@ -13,13 +13,14 @@ import {
     HogFunctionsRearrangePartialUpdateBody,
     HogFunctionsRetrieveParams,
 } from '@/generated/cdp_functions/api'
+import { withPostHogUrl, type WithPostHogUrl } from '@/tools/tool-utils'
 import type { Context, ToolBase, ZodObjectAny } from '@/tools/types'
 
 const CdpFunctionsListSchema = HogFunctionsListQueryParams
 
 const cdpFunctionsList = (): ToolBase<
     typeof CdpFunctionsListSchema,
-    Schemas.PaginatedHogFunctionMinimalList & { _posthogUrl: string }
+    WithPostHogUrl<Schemas.PaginatedHogFunctionMinimalList>
 > => ({
     name: 'cdp-functions-list',
     schema: CdpFunctionsListSchema,
@@ -40,10 +41,7 @@ const cdpFunctionsList = (): ToolBase<
                 updated_at: params.updated_at,
             },
         })
-        return {
-            ...(result as any),
-            _posthogUrl: `${context.api.getProjectBaseUrl(projectId)}/pipeline`,
-        }
+        return withPostHogUrl(result as any, `${context.api.getProjectBaseUrl(projectId)}/pipeline`)
     },
 })
 
