@@ -151,6 +151,8 @@ class TestExecuteWithAiEventsFallback:
         # The query's FROM clause should have been rewritten from ai_events to events
         actual_query = mock_execute.call_args.kwargs.get("query")
         assert isinstance(actual_query, ast.SelectQuery)
+        assert actual_query.select_from is not None
+        assert isinstance(actual_query.select_from.table, ast.Field)
         assert actual_query.select_from.table.chain == ["events"]
 
     @patch("posthog.hogql_queries.ai.ai_table_resolver.execute_hogql_query")

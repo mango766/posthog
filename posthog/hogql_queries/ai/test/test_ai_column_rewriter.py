@@ -49,7 +49,9 @@ class TestAiColumnToPropertyRewriter:
         assert compare.left.chain == ["properties", "$ai_is_error"]
         assert isinstance(compare.right, ast.Constant)
         assert compare.right.value == "true"
+        assert isinstance(result.args[1], ast.Constant)
         assert result.args[1].value == 1
+        assert isinstance(result.args[2], ast.Constant)
         assert result.args[2].value == 0
 
     def test_boolean_column_table_qualified_wrapped(self):
@@ -57,6 +59,8 @@ class TestAiColumnToPropertyRewriter:
         result = AiColumnToPropertyRewriter(force_rewrite=True).visit(node)
         assert isinstance(result, ast.Call)
         assert result.name == "if"
+        assert isinstance(result.args[0], ast.CompareOperation)
+        assert isinstance(result.args[0].left, ast.Field)
         assert result.args[0].left.chain == ["events", "properties", "$ai_is_error"]
 
     @pytest.mark.parametrize(
@@ -84,6 +88,7 @@ class TestAiColumnToPropertyRewriter:
         result = AiColumnToPropertyRewriter(force_rewrite=True).visit(node)
         assert isinstance(result, ast.Call)
         assert result.name == "toFloat"
+        assert isinstance(result.args[0], ast.Field)
         assert result.args[0].chain == ["events", "properties", "$ai_latency"]
 
     def test_numeric_column_usable_in_sum(self):
@@ -115,6 +120,8 @@ class TestAiColumnToPropertyRewriter:
         assert isinstance(result, ast.SelectQuery)
         assert isinstance(result.select[0], ast.Field)
         assert result.select[0].chain == ["properties", "$ai_trace_id"]
+        assert result.select_from is not None
+        assert isinstance(result.select_from.table, ast.Field)
         assert result.select_from.table.chain == ["events"]
 
     def test_scope_skips_non_ai_events_query(self):
@@ -132,8 +139,11 @@ class TestAiColumnToPropertyRewriter:
         assert isinstance(result.select[0], ast.Field)
         assert result.select[0].chain == ["trace_id"]
         # Inner query rewritten
+        assert result.select_from is not None
         inner = result.select_from.table
         assert isinstance(inner, ast.SelectQuery)
+        assert inner.select_from is not None
+        assert isinstance(inner.select_from.table, ast.Field)
         assert inner.select_from.table.chain == ["events"]
         # Inner SELECT: Alias(alias="trace_id", expr=Field(chain=["properties", "$ai_trace_id"]))
         inner_select = inner.select[0]
@@ -166,10 +176,12 @@ class TestAiColumnToPropertyRewriter:
         result = rewrite_expr_for_events_table(expr)
         assert isinstance(result, ast.And)
         # trace_id → properties.$ai_trace_id
+        assert isinstance(result.exprs[0], ast.CompareOperation)
         left0 = result.exprs[0].left
         assert isinstance(left0, ast.Field)
         assert left0.chain == ["properties", "$ai_trace_id"]
         # ai_events.timestamp → events.timestamp
+        assert isinstance(result.exprs[1], ast.CompareOperation)
         left1 = result.exprs[1].left
         assert isinstance(left1, ast.Field)
         assert left1.chain == ["events", "timestamp"]
@@ -187,7 +199,11 @@ class TestAiColumnToPropertyRewriter:
         # Both branches should have FROM events
         q1 = result.initial_select_query
         q2 = result.subsequent_select_queries[0].select_query
+        assert q1.select_from is not None
+        assert isinstance(q1.select_from.table, ast.Field)
         assert q1.select_from.table.chain == ["events"]
+        assert q2.select_from is not None
+        assert isinstance(q2.select_from.table, ast.Field)
         assert q2.select_from.table.chain == ["events"]
 
     def test_column_to_property_mapping_is_inverse(self):
