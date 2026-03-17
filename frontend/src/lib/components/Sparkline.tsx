@@ -20,6 +20,8 @@ export interface SparklineTimeSeries {
     color?: string
     /** Per-bar color overrides. Each entry is a CSS var name or a CanvasPattern. */
     barColors?: (string | CanvasPattern)[]
+    /** Per-bar hover color overrides. Each entry is a CSS var name or a CanvasPattern. */
+    barHoverColors?: (string | CanvasPattern)[]
     hoverColor?: string
 }
 
@@ -104,6 +106,7 @@ export function Sparkline({
                         name: timeseries.name || defaultName,
                         color: timeseries.color || defaultColor,
                         barColors: timeseries.barColors,
+                        barHoverColors: timeseries.barHoverColors,
                         values: timeseries.values || [],
                     }
                 }
@@ -191,13 +194,16 @@ export function Sparkline({
                         const bgColor = timeseries.barColors
                             ? timeseries.barColors.map((c) => (typeof c === 'string' ? getColorVar(c) : c))
                             : seriesColor
+                        const hoverBgColor = timeseries.barHoverColors
+                            ? timeseries.barHoverColors.map((c) => (typeof c === 'string' ? getColorVar(c) : c))
+                            : hoverColor
                         return {
                             label: timeseries.name,
                             data: timeseries.values,
                             minBarLength: 0,
                             categoryPercentage: 0.9, // Slightly tighter bar spacing than the default 0.8
                             backgroundColor: bgColor,
-                            hoverBackgroundColor: hoverColor,
+                            hoverBackgroundColor: hoverBgColor,
                             borderColor: seriesColor,
                             borderWidth: type === 'line' ? 2 : 0,
                             pointRadius: 0,

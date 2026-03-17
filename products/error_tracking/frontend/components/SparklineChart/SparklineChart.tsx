@@ -125,13 +125,19 @@ function buildBarGroup(
         .attr('x', (d) => xScale(d.date))
         .on('mouseover', function (this, _, d: unknown) {
             const current = d3.select(this)
-            options.onDatumMouseEnter?.(d as SparklineDatum)
-            options.hoverBackgroundColor && current.select('.bar').style('fill', options.hoverBackgroundColor)
+            const datum = d as SparklineDatum
+            options.onDatumMouseEnter?.(datum)
+            if (datum.animated && datum.color) {
+                current.select('.hover-overlay').style('opacity', 0.15)
+            } else if (options.hoverBackgroundColor) {
+                current.select('.bar').style('fill', options.hoverBackgroundColor)
+            }
         })
         .on('mouseout', function (this, _, d: unknown) {
             const current = d3.select(this)
             const datum = d as SparklineDatum
             options.onDatumMouseLeave?.(datum)
+            current.select('.hover-overlay').style('opacity', 0)
             current.select('.bar').style('fill', spikeBarFill(datum, options.backgroundColor))
         })
 
@@ -144,6 +150,21 @@ function buildBarGroup(
         .attr('height', (d) => (d && d.value > 0 ? contentHeight - yScale(d.value) : 0))
         .style('fill', (d) => spikeBarFill(d, options.backgroundColor))
         .style('clip-path', `inset(0 0 ${options.borderRadius + 1}px 0)`) // Offset by 1px to avoid overlapping on x axis
+        .attr('rx', options.borderRadius)
+        .attr('ry', options.borderRadius)
+
+    // Semi-transparent overlay for hover on animated (spike) bars
+    group
+        .append('rect')
+        .attr('class', 'hover-overlay')
+        .attr('x', (_, i) => xScale(data[i].date))
+        .attr('y', (d) => yScale(d.value) + options.borderRadius)
+        .attr('width', bandwidth * 0.9)
+        .attr('height', (d) => (d && d.value > 0 ? contentHeight - yScale(d.value) : 0))
+        .style('fill', 'black')
+        .style('opacity', 0)
+        .style('pointer-events', 'none')
+        .style('clip-path', `inset(0 0 ${options.borderRadius + 1}px 0)`)
         .attr('rx', options.borderRadius)
         .attr('ry', options.borderRadius)
 

@@ -39,13 +39,40 @@ function createSpikePatternCanvas(): HTMLCanvasElement {
 
 let sharedPatternCanvas: HTMLCanvasElement | null = null
 
+let sharedHoverPatternCanvas: HTMLCanvasElement | null = null
+
+function createSpikeHoverPatternCanvas(): HTMLCanvasElement {
+    if (!sharedPatternCanvas) {
+        sharedPatternCanvas = createSpikePatternCanvas()
+    }
+    const s = STRIPE_SIZE
+    const canvas = document.createElement('canvas')
+    canvas.width = s
+    canvas.height = s
+    const ctx = canvas.getContext('2d')
+    if (!ctx) {
+        return canvas
+    }
+    ctx.drawImage(sharedPatternCanvas, 0, 0)
+    ctx.fillStyle = 'rgba(0,0,0,0.15)'
+    ctx.fillRect(0, 0, s, s)
+    return canvas
+}
+
 function createSpikePattern(): CanvasPattern | null {
     if (!sharedPatternCanvas) {
         sharedPatternCanvas = createSpikePatternCanvas()
     }
-    // Each instance needs its own CanvasPattern so setTransform() doesn't affect others
     const ctx = document.createElement('canvas').getContext('2d')
     return ctx?.createPattern(sharedPatternCanvas, 'repeat') ?? null
+}
+
+function createSpikeHoverPattern(): CanvasPattern | null {
+    if (!sharedHoverPatternCanvas) {
+        sharedHoverPatternCanvas = createSpikeHoverPatternCanvas()
+    }
+    const ctx = document.createElement('canvas').getContext('2d')
+    return ctx?.createPattern(sharedHoverPatternCanvas, 'repeat') ?? null
 }
 
 function hasSpikeInBin(datumTime: number, binSizeMs: number, spikeTimestamps: number[]): boolean {
@@ -56,7 +83,8 @@ function buildSeriesData(
     data: SparklineData,
     options: SparklineOptions,
     spikeEvents: ErrorTrackingSpikeEvent[],
-    spikePattern: CanvasPattern | null
+    spikePattern: CanvasPattern | null,
+    spikeHoverPattern: CanvasPattern | null
 ): any[] {
     const series: any = {
         values: data.map((d) => d.value),
@@ -68,8 +96,10 @@ function buildSeriesData(
     if (spikeEvents.length > 0 && data.length >= 2 && spikePattern) {
         const binSizeMs = data[1].date.getTime() - data[0].date.getTime()
         const spikeTimestamps = spikeEvents.map((s) => new Date(s.detected_at).getTime())
-        series.barColors = data.map((datum) =>
-            hasSpikeInBin(datum.date.getTime(), binSizeMs, spikeTimestamps) ? spikePattern : options.backgroundColor
+        const spikeFlags = data.map((datum) => hasSpikeInBin(datum.date.getTime(), binSizeMs, spikeTimestamps))
+        series.barColors = spikeFlags.map((isSpike) => (isSpike ? spikePattern : options.backgroundColor))
+        series.barHoverColors = spikeFlags.map((isSpike) =>
+            isSpike ? (spikeHoverPattern ?? spikePattern) : options.hoverBackgroundColor
         )
     }
 
@@ -95,14 +125,17 @@ export function OccurrenceSparkline({
 
     const chartInstanceRef = useRef<Chart | null>(null)
     const spikePatternRef = useRef<CanvasPattern | null>(null)
+    const spikeHoverPatternRef = useRef<CanvasPattern | null>(null)
     const hasSpikes = spikeEvents.length > 0
 
     const [occurrences, labels, labelRenderer] = useMemo(() => {
         const pattern = hasSpikes ? createSpikePattern() : null
+        const hoverPattern = hasSpikes ? createSpikeHoverPattern() : null
         spikePatternRef.current = pattern
+        spikeHoverPatternRef.current = hoverPattern
 
         return [
-            buildSeriesData(data, options, spikeEvents, pattern),
+            buildSeriesData(data, options, spikeEvents, pattern, hoverPattern),
             data.map((value) => dayjs(value.date).toISOString()),
             (label: string) => dayjs(label).format('D MMM YYYY HH:mm (UTC)'),
         ]
@@ -120,9 +153,12 @@ export function OccurrenceSparkline({
         const animate = (): void => {
             offset = (offset + speed) % STRIPE_SIZE
             const pattern = spikePatternRef.current
+            const hoverPattern = spikeHoverPatternRef.current
             const chart = chartInstanceRef.current
             if (pattern && chart?.canvas) {
-                pattern.setTransform(new DOMMatrix().translateSelf(0, -offset))
+                const transform = new DOMMatrix().translateSelf(0, -offset)
+                pattern.setTransform(transform)
+                hoverPattern?.setTransform(transform)
                 chart.update('none')
             }
             frameId = requestAnimationFrame(animate)

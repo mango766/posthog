@@ -9,6 +9,10 @@ from products.error_tracking.backend.models import ErrorTrackingSpikeEvent
 
 
 class ErrorTrackingSpikeEventSerializer(serializers.ModelSerializer):
+    issue_id = serializers.UUIDField(source="issue.id")
+    issue_name = serializers.CharField(source="issue.name", default=None)
+    issue_description = serializers.CharField(source="issue.description", default=None)
+
     class Meta:
         model = ErrorTrackingSpikeEvent
         fields = [
@@ -39,7 +43,7 @@ class ErrorTrackingSpikeEventViewSet(TeamAndOrgViewSetMixin, mixins.ListModelMix
     ]
 
     def safely_get_queryset(self, queryset):
-        qs = queryset.filter(team_id=self.team.id)
+        qs = queryset.filter(team_id=self.team.id).select_related("issue")
         issue_id = self.request.query_params.get("issue_id")
         if issue_id:
             qs = qs.filter(issue_id=issue_id)
