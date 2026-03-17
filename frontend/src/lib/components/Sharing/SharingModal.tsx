@@ -308,7 +308,7 @@ export function SharingModalContent({
                                         formKey="sharingSettings"
                                         className="deprecated-space-y-2"
                                     >
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 grid-flow *:odd:last:col-span-2">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                             {insight && (
                                                 <LemonField name="noHeader">
                                                     {({ value, onChange }) => (
@@ -383,23 +383,6 @@ export function SharingModalContent({
                                             )}
 
                                             {dashboardId && (
-                                                <LemonField name="theme">
-                                                    {({ value, onChange }) => (
-                                                        <LemonSelect
-                                                            value={value ?? 'system'}
-                                                            onSelect={(theme) => onChange(theme)}
-                                                            options={[
-                                                                { value: 'system', label: 'Theme: System' },
-                                                                { value: 'light', label: 'Theme: Light' },
-                                                                { value: 'dark', label: 'Theme: Dark' },
-                                                            ]}
-                                                            fullWidth
-                                                        />
-                                                    )}
-                                                </LemonField>
-                                            )}
-
-                                            {dashboardId && (
                                                 <LemonField name="hideExtraDetails">
                                                     {({ value, onChange }) => (
                                                         <LemonSwitch
@@ -415,6 +398,23 @@ export function SharingModalContent({
                                                             }
                                                             onChange={() => onChange(!value)}
                                                             checked={!value}
+                                                        />
+                                                    )}
+                                                </LemonField>
+                                            )}
+
+                                            {dashboardId && (
+                                                <LemonField name="theme">
+                                                    {({ value, onChange }) => (
+                                                        <LemonSelect
+                                                            value={value ?? 'system'}
+                                                            onSelect={(theme) => onChange(theme)}
+                                                            options={[
+                                                                { value: 'system', label: 'Theme: System' },
+                                                                { value: 'light', label: 'Theme: Light' },
+                                                                { value: 'dark', label: 'Theme: Dark' },
+                                                            ]}
+                                                            fullWidth
                                                         />
                                                     )}
                                                 </LemonField>
