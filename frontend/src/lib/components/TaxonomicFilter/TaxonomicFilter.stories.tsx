@@ -1,15 +1,20 @@
+import { MOCK_TEAM_ID } from 'lib/api.mock'
+
 import { Meta, StoryFn } from '@storybook/react'
 import { useActions, useMountedLogic } from 'kea'
 
 import { taxonomicFilterMocksDecorator } from 'lib/components/TaxonomicFilter/__mocks__/taxonomicFilterMocksDecorator'
 import { TaxonomicFilterGroupType } from 'lib/components/TaxonomicFilter/types'
+import { FEATURE_FLAGS } from 'lib/constants'
 import { useDelayedOnMountEffect } from 'lib/hooks/useOnMountEffect'
+import { useOnMountEffect } from 'lib/hooks/useOnMountEffect'
 
 import { useAvailableFeatures } from '~/mocks/features'
 import { actionsModel } from '~/models/actionsModel'
-import { AvailableFeature } from '~/types'
+import { AvailableFeature, PropertyFilterType, PropertyOperator } from '~/types'
 
 import { infiniteListLogic } from './infiniteListLogic'
+import { recentTaxonomicFiltersLogic } from './recentTaxonomicFiltersLogic'
 import { TaxonomicFilter } from './TaxonomicFilter'
 
 const meta: Meta<typeof TaxonomicFilter> = {
@@ -273,3 +278,116 @@ ForceNonColumnar.parameters = {
         },
     },
 }
+
+const RECENT_ITEMS = [
+    {
+        groupType: TaxonomicFilterGroupType.EventProperties,
+        groupName: 'Event properties',
+        value: '$browser',
+        item: { name: '$browser' },
+        propertyFilter: {
+            type: PropertyFilterType.Event,
+            key: '$browser',
+            operator: PropertyOperator.Exact,
+            value: 'Chrome',
+        },
+    },
+    {
+        groupType: TaxonomicFilterGroupType.Events,
+        groupName: 'Events',
+        value: 'signed up',
+        item: { name: 'signed up', id: 'a' },
+    },
+    {
+        groupType: TaxonomicFilterGroupType.EventProperties,
+        groupName: 'Event properties',
+        value: '$os',
+        item: { name: '$os' },
+        propertyFilter: {
+            type: PropertyFilterType.Event,
+            key: '$os',
+            operator: PropertyOperator.Exact,
+            value: 'Mac OS X',
+        },
+    },
+    {
+        groupType: TaxonomicFilterGroupType.Events,
+        groupName: 'Events',
+        value: 'viewed insights',
+        item: { name: 'viewed insights', id: 'b' },
+    },
+]
+
+function SeedRecents({ count }: { count: number }): null {
+    useMountedLogic(recentTaxonomicFiltersLogic)
+
+    useOnMountEffect(() => {
+        for (const recent of RECENT_ITEMS.slice(0, count)) {
+            recentTaxonomicFiltersLogic.actions.recordRecentFilter(
+                recent.groupType,
+                recent.groupName,
+                recent.value,
+                recent.item,
+                MOCK_TEAM_ID,
+                recent.propertyFilter
+            )
+        }
+    })
+
+    return null
+}
+
+const SUGGESTED_FILTERS_ARGS = {
+    taxonomicGroupTypes: [
+        TaxonomicFilterGroupType.SuggestedFilters,
+        TaxonomicFilterGroupType.EventProperties,
+        TaxonomicFilterGroupType.Events,
+    ],
+}
+
+const SUGGESTED_FILTERS_PARAMETERS = {
+    featureFlags: [FEATURE_FLAGS.TAXONOMIC_FILTER_RECENTS],
+    testOptions: { waitForSelector: '.taxonomic-infinite-list' },
+}
+
+export const SuggestedFiltersNoRecents: StoryFn<typeof TaxonomicFilter> = (args) => {
+    return (
+        <div className="w-fit border rounded p-2 bg-surface-primary">
+            <SeedRecents count={0} />
+            <TaxonomicFilter {...args} />
+        </div>
+    )
+}
+SuggestedFiltersNoRecents.args = {
+    ...SUGGESTED_FILTERS_ARGS,
+    taxonomicFilterLogicKey: 'suggested-no-recents',
+}
+SuggestedFiltersNoRecents.parameters = SUGGESTED_FILTERS_PARAMETERS
+
+export const SuggestedFiltersOneRecent: StoryFn<typeof TaxonomicFilter> = (args) => {
+    return (
+        <div className="w-fit border rounded p-2 bg-surface-primary">
+            <SeedRecents count={1} />
+            <TaxonomicFilter {...args} />
+        </div>
+    )
+}
+SuggestedFiltersOneRecent.args = {
+    ...SUGGESTED_FILTERS_ARGS,
+    taxonomicFilterLogicKey: 'suggested-one-recent',
+}
+SuggestedFiltersOneRecent.parameters = SUGGESTED_FILTERS_PARAMETERS
+
+export const SuggestedFiltersFourRecents: StoryFn<typeof TaxonomicFilter> = (args) => {
+    return (
+        <div className="w-fit border rounded p-2 bg-surface-primary">
+            <SeedRecents count={4} />
+            <TaxonomicFilter {...args} />
+        </div>
+    )
+}
+SuggestedFiltersFourRecents.args = {
+    ...SUGGESTED_FILTERS_ARGS,
+    taxonomicFilterLogicKey: 'suggested-four-recents',
+}
+SuggestedFiltersFourRecents.parameters = SUGGESTED_FILTERS_PARAMETERS
