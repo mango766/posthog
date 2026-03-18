@@ -161,8 +161,10 @@ class TestExperimentSavedMetricsCRUD(APILicensedTest):
 
         self.assertEqual(Experiment.objects.get(pk=exp_id).saved_metrics.count(), 1)
         experiment_to_saved_metric = Experiment.objects.get(pk=exp_id).experimenttosavedmetric_set.first()
+        assert experiment_to_saved_metric is not None
         self.assertEqual(experiment_to_saved_metric.metadata, {"type": "secondary"})
         saved_metric = Experiment.objects.get(pk=exp_id).saved_metrics.first()
+        assert saved_metric is not None
         self.assertEqual(saved_metric.id, saved_metric_id)
         self.assertEqual(saved_metric.query["kind"], "ExperimentMetric")
         self.assertEqual(saved_metric.query["metric_type"], "mean")
@@ -193,6 +195,7 @@ class TestExperimentSavedMetricsCRUD(APILicensedTest):
         # make sure experiment in question was updated as well
         self.assertEqual(Experiment.objects.get(pk=exp_id).saved_metrics.count(), 1)
         saved_metric = Experiment.objects.get(pk=exp_id).saved_metrics.first()
+        assert saved_metric is not None
         self.assertEqual(saved_metric.id, saved_metric_id)
         self.assertEqual(saved_metric.query["kind"], "ExperimentMetric")
         self.assertEqual(saved_metric.query["metric_type"], "mean")
